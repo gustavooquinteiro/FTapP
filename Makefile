@@ -22,8 +22,7 @@ build:
 	mkdir build
 
 client: include/user_interface.h
-	gcc src/user_interface.c $(GTK_FLAGS) -o build/user_interface.o
-	gcc src/client.c build/user_interface.o $(GTK_FLAGS) -o $(APP_CLIENT_NAME)
+	gcc `pkg-config --cflags gtk+-3.0` -o $(APP_CLIENT_NAME) src/user_interface.c src/client.c `pkg-config --libs gtk+-3.0`
 
 server:
 	gcc src/server.c $(GTK_FLAGS) -o $(APP_SERVER_NAME)
