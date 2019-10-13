@@ -1,8 +1,6 @@
-#include <gtk/gtk.h>
-#include "../include/transport.h"
+#include "../include/user_interface.h"
 
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
-    
-    return 0;
+    return app_start();
 }
