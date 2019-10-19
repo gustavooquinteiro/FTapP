@@ -29,7 +29,7 @@ build:
 	@ mkdir build
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos\n"
 
-client: include/user_interface.h
+client: include/user_interface.h include/client.h
 	@ $(ECHO) " Compilando client.c...\n"
 	@ gcc $(GTK_FLAGS) -o $(APP_CLIENT_NAME) src/user_interface.c src/client.c $(GTK_FLAGS)
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado client.c em $(APP_CLIENT_NAME)\n"
