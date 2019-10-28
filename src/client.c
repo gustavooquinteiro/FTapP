@@ -1,5 +1,5 @@
-#include "../include/user_interface.h"
 #include "../include/client.h"
+
 
 int create_connection()
 {
@@ -31,13 +31,13 @@ struct sockaddr_in connect_with_server(int socket, int port, char * address)
     return server_address;
 }
 
-int send_package()
+
+int send_package(FILE * arquivo)
 {
-    struct sockaddr_in server = connect_with_server(create_connection(), PORT, ADDRESS);
+    return submit_package(arquivo);
 }
 
 int main(int argc, char **argv)
 {
-    //send_package();
     return app_start();
 }
