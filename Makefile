@@ -10,6 +10,10 @@ CLIENT_C = ./src/client.c
 CLIENT_H = ./include/client.h
 CLIENT_O = $(subst .c,.o,$(subst src,build,$(CLIENT_C)))
 
+TRANSPORT_C = ./src/transport.c
+TRANSPORT_H = ./include/transport.h
+TRANSPORT_O = $(subst .c,.o,$(subst src,build,$(TRANSPORT_C)))
+
 SERVER_C = ./src/server.c
 GREEN =
 NC =
@@ -29,17 +33,20 @@ else
 	endif
 endif
 
-all: build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
+all: clean build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
 
 build:
 	@ mkdir build
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos\n"
 
-$(APP_CLIENT_NAME): $(INTERFACE_O)
-	@ $(ECHO) " Compilando client.c...\n"
-	@ gcc $(GTK_FLAGS) -o $(APP_CLIENT_NAME) $(INTERFACE_C) $(CLIENT_C) $(GTK_FLAGS)
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado client.c em $(APP_CLIENT_NAME)\n"
+$(APP_CLIENT_NAME): $(TRANSPORT_O) $(INTERFACE_O)
+	@ gcc $< $(GTK_FLAGS) -o $(APP_CLIENT_NAME) $(INTERFACE_C) $(CLIENT_C) $(GTK_FLAGS)
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@\n"
 
+$(TRANSPORT_O): $(TRANSPORT_C) $(TRANSPORT_H)
+	@ gcc -c $< -o $@
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@\n"
+	
 $(INTERFACE_O): $(INTERFACE_C) $(INTERFACE_H)
 	@ gcc $(GTK_FLAGS) -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@\n"
