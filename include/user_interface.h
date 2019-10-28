@@ -11,5 +11,6 @@ int app_start();
 static void file_select_callback(GtkWidget *widget, gpointer data);
 static void app_activate(GtkApplication *app);
 static ApplicationWindow *create_application_window();
+static void update_selected_filename(ApplicationWindow *app_window, char *filename);
 
 #endif
