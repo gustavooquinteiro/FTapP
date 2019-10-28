@@ -2,7 +2,7 @@
 #define _CLIENT_H
 
 #include <sys/socket.h>
-#include <arpa/inet.h>
+#include <arpa/inet.h> 
 #include <stdio.h>
 
 #define PROTOCOL_VALUE 0
