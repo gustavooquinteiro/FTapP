@@ -1,56 +1,105 @@
 #include "../include/transport.h"
+#include <sys/socket.h>
+#include <arpa/inet.h> 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-int create_connection()
-{
-    return socket(AF_INET, SOCK_STREAM, PROTOCOL_VALUE);
+// Struct do socket da camada de transporte
+struct tcp_socket{
+    int id;
+};
+
+// Nome simplificado para struct de endereço do socket
+typedef struct sockaddr_in SockAddrIn;
+typedef struct sockaddr SockAddr;
+
+tcp_socket* new_connection_socket(tcp_socket* listener){
+    tcp_socket* sock = (tcp_socket*) malloc(sizeof(tcp_socket));
+
+    SockAddrIn client_address;
+    int addr_len = sizeof(client_address);
+
+    sock->id = accept(listener->id, (SockAddr*)&client_address, (socklen_t*)&addr_len);
+    if(sock->id == -1){
+        perror(SOCKET_FAILED_EXCEPTION);
+        return NULL;
+    }
+
+    return sock;
 }
 
-struct sockaddr_in connect_with_server(int socket, int port, char * address)
-{
-    if (!create_connection())
-    {
-        perror(SOCKET_FAILED_EXCEPTION); 
-        exit(EXIT_FAILURE);
+tcp_socket* new_listener_socket(int port){
+    tcp_socket* sock = (tcp_socket*) malloc(sizeof(tcp_socket));
+
+    // Cria o socket
+    sock->id = socket(AF_INET, SOCK_STREAM, PROTOCOL_VALUE);
+    if(sock->id == -1){
+        perror(SOCKET_FAILED_EXCEPTION);
+        return NULL;
+    }
+    // Seta um endereço de socket para 'adress'
+    SockAddrIn server_address;
+    server_address.sin_family = AF_INET; 
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(port);
+    
+    if(bind(sock->id, (SockAddr*)&server_address, sizeof(server_address)) == -1){
+        return NULL;
     }
     
-    struct sockaddr_in server_address;
+    if(listen(sock->id, LISTEN_QUEUE) == -1){
+        return NULL;
+    }   
+
+    return sock;
+}
+
+tcp_socket* new_requester_socket(int port, char* address){
+    tcp_socket* sock = (tcp_socket*) malloc(sizeof(tcp_socket));
+
+    // Cria o socket
+    sock->id = socket(AF_INET, SOCK_STREAM, PROTOCOL_VALUE);
+    if(sock->id == -1){
+        perror(SOCKET_FAILED_EXCEPTION);
+        return NULL;
+    }
+    
+    // Seta um endereço de socket para 'adress' na porta 'port'
+    SockAddrIn server_address;
     server_address.sin_family = AF_INET; 
     server_address.sin_addr.s_addr = inet_addr(address); 
     server_address.sin_port = htons(port);
-    
-    if (connect(socket, (struct sockaddr *)&server_address, sizeof(server_address)))
-    { 
-        perror(SERVER_FAILED_EXCEPTION); 
-        exit(EXIT_FAILURE); 
-    } 
-    else
-        printf("connected to the server..\n");
-    
-    return server_address;
-}
 
-int create_control_connection()
-{
-    // Substituir os (char *) pelo tipo pacote, assim que tivermos definido a struct pacote
-    char * hello = "Hello";
-    char buffer[PKT_SIZE] = {0};
-    int control_socket = create_connection();
-    struct sockaddr_in control_conn  = connect_with_server(control_socket, CONTROL_PORT, ADDRESS);
-    send(control_socket, hello, strlen(hello), PROTOCOL_VALUE); 
-    int valread = read(control_socket, buffer, PKT_SIZE); 
-    // Definir ACCEPT como a mensagem de aceitação vinda do servidor
-    if (strcmp(buffer, ACCEPT))
-        return EXIT_SUCCESS;
-    return EXIT_FAILURE;
-}
-
-int submit_package(FILE * arquivo)
-{
-    if (create_control_connection())
-    {
-        int server_conn = create_connection();
-        struct sockaddr_in server = connect_with_server(server_conn, DATA_PORT, ADDRESS);
-        send(server_conn, arquivo, sizeof(arquivo), PROTOCOL_VALUE);
-        return EXIT_SUCCESS;
+    // Envia requisição de conexão
+    if(connect(sock->id, (SockAddr*)&server_address, sizeof(server_address)) == -1){
+        perror(CONNECTION_FAILED_EXCEPTION); 
+        return NULL;    
     }
+
+    return sock;
+}
+
+int send_message(tcp_socket* sock, char* snd_data, unsigned int length){
+    int size = send(sock->id, snd_data, length, SEND_FLAGS);
+    if(size == -1){
+        return EXIT_FAILURE;
+    }
+
+    return size;
+}
+
+
+int recieve_message(tcp_socket* sock, char* rcv_data, unsigned int length){
+    int size = recv(sock->id, rcv_data, length, RECV_FLAGS);    
+    if(size == -1){
+        return EXIT_FAILURE;
+    }
+    return size;
+}
+
+int delete_tcp_socket(tcp_socket* sock){
+    shutdown(sock->id, SHUT_RDWR);
+    free(sock);
+    return 1;
 }
