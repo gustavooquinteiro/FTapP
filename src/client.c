@@ -1,12 +1,9 @@
 #include "../include/client.h"
 
 
-int send_package(FILE * arquivo)
+int send_package(char * arquivo)
 {
-    return submit_package(arquivo);
-}
-
-int main(int argc, char **argv)
-{
-    return app_start();
+    printf("send_package client.c\n");
+    printf("%s\n", arquivo);
+    // Bota os codigos foda
 }
