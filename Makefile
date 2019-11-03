@@ -39,8 +39,8 @@ build:
 	@ mkdir build
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos\n"
 
-$(APP_CLIENT_NAME): $(TRANSPORT_O) $(INTERFACE_O)
-	@ gcc $< $(GTK_FLAGS) -o $(APP_CLIENT_NAME) $(INTERFACE_C) $(CLIENT_C) $(GTK_FLAGS)
+$(APP_CLIENT_NAME): $(TRANSPORT_O) build/client.o  $(INTERFACE_O) 
+	@ gcc $< $(GTK_FLAGS) -o $(APP_CLIENT_NAME) src/application.c $^ $(GTK_FLAGS)
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@\n"
 
 $(TRANSPORT_O): $(TRANSPORT_C) $(TRANSPORT_H)
@@ -50,6 +50,9 @@ $(TRANSPORT_O): $(TRANSPORT_C) $(TRANSPORT_H)
 $(INTERFACE_O): $(INTERFACE_C) $(INTERFACE_H)
 	@ gcc $(GTK_FLAGS) -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@\n"
+
+build/client.o: ./src/client.c ./include/client.h
+	gcc -c $< -o $@
 
 $(APP_SERVER_NAME):
 	@ $(ECHO) " Compilando server.c...\n"

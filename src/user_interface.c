@@ -1,7 +1,19 @@
 #include "../include/user_interface.h"
 #include "../include/client.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <gtk/gtk.h>
+
+typedef struct applicationWindow ApplicationWindow;
+
+static void file_select_callback(GtkWidget *widget, gpointer data);
+static void app_activate(GtkApplication *app);
+static ApplicationWindow *create_application_window();
+static void update_selected_filename(ApplicationWindow *app_window, char *filename);
+
 static GtkWidget *app_container;
+
 char* filename;
 struct applicationWindow
 {
@@ -19,7 +31,7 @@ static ApplicationWindow *app_window;
 
 static void send(GtkWidget *widget, gpointer data){
     char * name = data;
-    send_package(name);
+    send_file(name, "127.0.0.1");
 }
 
 int app_start()
