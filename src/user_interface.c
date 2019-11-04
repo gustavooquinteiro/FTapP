@@ -31,8 +31,11 @@ static ApplicationWindow *app_window;
 
 static void send(GtkWidget *widget, gpointer data)
 {
-    char ** name = data;
-    printf("retorn foda = %i\n", send_file(name[0], "127.0.0.1"));
+    char** name = data;
+    GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
+    char* ip = gtk_entry_get_text(entry);
+    printf("\nIP FODA = %s\n", ip);
+    printf("retorn foda = %i\n", send_file(name[0], ip));
 }
 
 int app_start()
