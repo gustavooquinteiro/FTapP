@@ -23,11 +23,7 @@ tcp_socket* new_connection_socket(tcp_socket* listener){
     int addr_len = sizeof(client_address);
 
     sock->id = accept(listener->id, (SockAddr*)&client_address, (socklen_t*)&addr_len);
-    if(sock->id == -1){
-        perror(SOCKET_FAILED_EXCEPTION);
-        return NULL;
-    }
-
+    if(sock->id == -1) return NULL;
     return sock;
 }
 
@@ -106,16 +102,11 @@ int delete_tcp_socket(tcp_socket* sock){
     return value;
 }
 
-int get_peer_ip(tcp_socket* sock){
-    SockAddr address;
-    socklen_t length;
-    getpeername(sock->id, &address, &length);
-
-    for (int i = 0; i < 6; ++i)
-    {
-        printf("%u ", address.sa_data[i]);
-    }
-    printf("\n");
-
+int get_peer_ip(tcp_socket* sock, char* ip){
+    SockAddrIn address;
+    socklen_t length = sizeof(address);
+    getpeername(sock->id, (SockAddr*)&address, &length);
+    
+    strcpy(ip, inet_ntoa(address.sin_addr));
     return 0;
 }

@@ -10,11 +10,11 @@ typedef struct applicationWindow ApplicationWindow;
 static void file_select_callback(GtkWidget *widget, gpointer data);
 static void app_activate(GtkApplication *app);
 static ApplicationWindow *create_application_window();
-static void update_selected_filename(ApplicationWindow *app_window, char *filename);
+static void update_selected_filename(ApplicationWindow *app_window, char *name);
 
 static GtkWidget *app_container;
 
-char* filename;
+char** filename;
 struct applicationWindow
 {
     GtkWidget *grid;
@@ -29,15 +29,20 @@ struct applicationWindow
 static ApplicationWindow *app_window;
 
 
-static void send(GtkWidget *widget, gpointer data){
-    char * name = data;
-    printf("retorn foda = %i\n", send_file(name, "127.0.0.1"));
+static void send(GtkWidget *widget, gpointer data)
+{
+    char** name = data;
+    GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
+    char* ip = gtk_entry_get_text(entry);
+    printf("\nIP FODA = %s\n", ip);
+    printf("retorn foda = %i\n", send_file(name[0], ip));
 }
 
 int app_start()
 {
     GtkApplication *app;
     int status;
+    filename = (char**)malloc(sizeof(char*));
 
     app = gtk_application_new("ufba.mata59.trabalho", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK (app_activate), NULL);
@@ -71,6 +76,7 @@ static void app_activate(GtkApplication *app)
 
     app_window->send_btn = gtk_button_new_with_label("Enviar");
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->send_btn, 2, 0, 1, 1);
+    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send), filename);
 
     app_window->select_file_btn = gtk_button_new_with_label("Selecionar arquivo");
     g_signal_connect(app_window->select_file_btn, "clicked", G_CALLBACK(file_select_callback), NULL);
@@ -97,27 +103,25 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
     if(res == GTK_RESPONSE_ACCEPT)
     {
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
-        filename = gtk_file_chooser_get_filename(chooser);
-        g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send), filename);
+        filename[0] = gtk_file_chooser_get_filename(chooser);
 
         FILE *file;
-        file = fopen(filename, "r");
+        file = fopen(filename[0], "r");
 
         if(file != NULL)
-            update_selected_filename(app_window, filename);
+            update_selected_filename(app_window, filename[0]);
         
         fclose(file);
-        //g_free(filename);
     }
 
     gtk_widget_destroy(dialog);
 }
 
-static void update_selected_filename(ApplicationWindow *app_window, char *filename)
+static void update_selected_filename(ApplicationWindow *app_window, char *name)
 {
     char buffer[120];
     strcat(buffer, "Arquivo escolhido: ");
-    strcat(buffer, filename);
+    strcat(buffer, name);
     char *new_filename = buffer;
     printf("Novo nome: %s", new_filename);
     char *format = "<span font_desc=\"16.0\">%s</span>";
