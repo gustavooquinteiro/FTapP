@@ -1,6 +1,8 @@
 #include "../include/transport.h"
+
 #include <sys/socket.h>
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -45,10 +47,12 @@ tcp_socket* new_listener_socket(int port){
     server_address.sin_port = htons(port);
     
     if(bind(sock->id, (SockAddr*)&server_address, sizeof(server_address)) == -1){
+        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }
     
     if(listen(sock->id, LISTEN_QUEUE) == -1){
+        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }   
 
@@ -80,26 +84,38 @@ tcp_socket* new_requester_socket(int port, char* address){
     return sock;
 }
 
-int send_message(tcp_socket* sock, char* snd_data, unsigned int length){
+int send_message(tcp_socket* sock, void* snd_data, unsigned int length){
     int size = send(sock->id, snd_data, length, SEND_FLAGS);
-    if(size == -1){
-        return EXIT_FAILURE;
-    }
-
     return size;
 }
 
 
-int recieve_message(tcp_socket* sock, char* rcv_data, unsigned int length){
-    int size = recv(sock->id, rcv_data, length, RECV_FLAGS);    
-    if(size == -1){
-        return EXIT_FAILURE;
-    }
+int recieve_message(tcp_socket* sock, void* rcv_data, unsigned int length, int flag){
+    int size;
+    if(flag == 0)
+        size = recv(sock->id, rcv_data, length, 0);
+    else 
+        size = recv(sock->id, rcv_data, length, MSG_WAITALL);
+    
     return size;
 }
 
 int delete_tcp_socket(tcp_socket* sock){
-    shutdown(sock->id, SHUT_RDWR);
+    int value = shutdown(sock->id, SHUT_RDWR);
     free(sock);
-    return 1;
+    return value;
+}
+
+int get_peer_ip(tcp_socket* sock){
+    SockAddr address;
+    socklen_t length;
+    getpeername(sock->id, &address, &length);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        printf("%u ", address.sa_data[i]);
+    }
+    printf("\n");
+
+    return 0;
 }

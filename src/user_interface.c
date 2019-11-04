@@ -1,8 +1,20 @@
 #include "../include/user_interface.h"
 #include "../include/client.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <gtk/gtk.h>
+
+typedef struct applicationWindow ApplicationWindow;
+
+static void file_select_callback(GtkWidget *widget, gpointer data);
+static void app_activate(GtkApplication *app);
+static ApplicationWindow *create_application_window();
+static void update_selected_filename(ApplicationWindow *app_window, char *filename);
+
 static GtkWidget *app_container;
 
+char* filename;
 struct applicationWindow
 {
     GtkWidget *grid;
@@ -15,6 +27,12 @@ struct applicationWindow
 };
 
 static ApplicationWindow *app_window;
+
+
+static void send(GtkWidget *widget, gpointer data){
+    char * name = data;
+    printf("retorn foda = %i\n", send_file(name, "127.0.0.1"));
+}
 
 int app_start()
 {
@@ -52,7 +70,6 @@ static void app_activate(GtkApplication *app)
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->ip_addr_textbox, 1, 0, 1, 1);
 
     app_window->send_btn = gtk_button_new_with_label("Enviar");
-    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send_package), NULL);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->send_btn, 2, 0, 1, 1);
 
     app_window->select_file_btn = gtk_button_new_with_label("Selecionar arquivo");
@@ -79,16 +96,18 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
 
     if(res == GTK_RESPONSE_ACCEPT)
     {
-        char *filename;
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
         filename = gtk_file_chooser_get_filename(chooser);
+        g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send), filename);
+
         FILE *file;
         file = fopen(filename, "r");
 
         if(file != NULL)
-        update_selected_filename(app_window, filename);
-
-        g_free(filename);
+            update_selected_filename(app_window, filename);
+        
+        fclose(file);
+        //g_free(filename);
     }
 
     gtk_widget_destroy(dialog);
