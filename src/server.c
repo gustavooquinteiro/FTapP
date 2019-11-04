@@ -162,8 +162,8 @@ int main(int argc, char const *argv[])
         }
         
         fclose(corno);  
-        if (error) {
-            remove(name);
+        if (error == 1) {
+            int status = remove(file_name);
             delete_tcp_socket(conn_socket);
             continue;
         }
