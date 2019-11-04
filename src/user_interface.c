@@ -31,7 +31,7 @@ static ApplicationWindow *app_window;
 
 static void send(GtkWidget *widget, gpointer data){
     char * name = data;
-    send_file(name, "127.0.0.1");
+    printf("retorn foda = %i\n", send_file(name, "127.0.0.1"));
 }
 
 int app_start()

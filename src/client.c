@@ -28,25 +28,39 @@ uint64_t get_filesize(FILE* file){
 int send_file(char* file_name, char* ip_address)
 {
 	uint32_t PKG_SIZE = 1000;
+    int returned_value;
 
     printf("send_package client.c\n");
     printf("%s\n", file_name);
 
     FILE* myfile = fopen(file_name, "rb"); 
+    if (myfile == NULL) return FILE_ERROR;
+
 
     // Cria socket de conexão
     tcp_socket* socket = new_requester_socket(CONTROL_PORT, ip_address);
-    if(socket == NULL) return -1;
+    if(socket == NULL){
+        fclose(myfile);
+        return CONN_SOCKET_CREATION_ERROR;
+    }
 
     // Envia requisição para conexão
     char request_msg[1] = {'A'};
-    if(send_message(socket, request_msg, 1) == -1) return -1;
+    if(send_message(socket, request_msg, 1) == -1) {
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        return REQUEST_ERROR;
+    }
 
     // Recebe resposta do servidor (maximo de bytes no pacote)
     uint8_t max_pkg_bytes[4];
-    if(recieve_message(socket, max_pkg_bytes, 4, 0) == -1) return -1;
+    returned_value = recieve_message(socket, max_pkg_bytes, 4, 1);
+    if( returned_value == -1 || returned_value == 0){
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        return RESPONSE_ERROR;
+    }
     uint32_t max_pkg = toInt(max_pkg_bytes);
-
     // Calcula tamanho do arquivo  
     uint64_t filesize = get_filesize(myfile);
 
@@ -55,7 +69,11 @@ int send_file(char* file_name, char* ip_address)
     uint8_t sizes_bytes[8 + 4];
     toBytes(sizes_bytes, filesize);
     toBytes(sizes_bytes + 8, pkg_size);
-    if(send_message(socket, sizes_bytes, 8 + 4) == -1) return -1;
+    if(send_message(socket, sizes_bytes, 8 + 4) == -1){
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        return SEND_INFO_ERROR;
+    }
     printf("Tamanho '%lu' enviado.\n", filesize);
 
 
@@ -64,12 +82,15 @@ int send_file(char* file_name, char* ip_address)
     uint8_t buffer[pkg_size];
     int count = 1;
     while(rest > 0){
+        printf("entrou  no cu\n");
         int size = min(rest, pkg_size);
         fread(buffer, sizeof(char), size, myfile);
 
         int bytes_sent = send_message(socket, buffer, size);
-        if(bytes_sent == -1){
-            exit(EXIT_FAILURE);        
+        if(bytes_sent == -1){ 
+            delete_tcp_socket(socket);
+            fclose(myfile);
+            return SEND_FILE_ERROR;
         }
         printf("Pacote %i com %i bytes enviado.\n", count, bytes_sent);
 
@@ -81,9 +102,12 @@ int send_file(char* file_name, char* ip_address)
     
     // Recebe mensagem de confirmação
     char server_msg[50];
-    int server_msg_size = recieve_message(socket, server_msg, PKG_SIZE, 0);
-    if(server_msg_size == -1) return -1;
-    server_msg[server_msg_size] = '\0';
+    returned_value = recieve_message(socket, server_msg, PKG_SIZE, 0);
+    if(returned_value == -1 || returned_value == 0){
+        delete_tcp_socket(socket);
+        return SERVER_CONFIRM_ERROR;
+    }
+    server_msg[returned_value] = '\0';
     printf("Mensagem do servidor: %s\n", server_msg);
 
     delete_tcp_socket(socket);
