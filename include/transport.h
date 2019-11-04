@@ -32,6 +32,6 @@ int recieve_message(tcp_socket*, void* rcv_data, unsigned int length, int flag);
 int delete_tcp_socket(tcp_socket*);
 
 // Retorna o ip do par conectado no socket dado 
-int get_peer_ip(tcp_socket*);
+int get_peer_ip(tcp_socket*, char* ip);
 
 #endif

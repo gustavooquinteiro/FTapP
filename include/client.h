@@ -1,6 +1,7 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
+#define SUCCESS 0
 #define REQUEST_ERROR 2
 #define RESPONSE_ERROR 4
 #define SEND_INFO_ERROR 6

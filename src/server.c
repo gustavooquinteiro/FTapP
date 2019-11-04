@@ -57,7 +57,7 @@ int main(int argc, char const *argv[])
 {
     int returned_value;
     int attempts = 0;
-    tcp_socket* listener_socket;
+    tcp_socket* listener_socket = NULL;
     while(listener_socket == NULL && attempts < 3){
         listener_socket = new_listener_socket(CONTROL_PORT);
         attempts++;
@@ -87,17 +87,13 @@ int main(int argc, char const *argv[])
             delete_tcp_socket(conn_socket);
             continue;
         }
-        
-        // get_peer_ip(conn_socket);
-        // printf("Conectado com %d\n", get_peer_ip(conn_socket)); 
-
 
         // Envia o maximo de bytes num pacote
         uint8_t max_pkg_bytes[4];
         toBytes32(max_pkg_bytes, MAX_PKG_SIZE);
         if(send_message(conn_socket, max_pkg_bytes, sizeof(uint32_t)) == -1){
             perror(RESPONSE_ERROR);
-            printf("valor do shutdown %i\n", delete_tcp_socket(conn_socket));
+            delete_tcp_socket(conn_socket);
             continue;
         }
 
@@ -111,16 +107,38 @@ int main(int argc, char const *argv[])
         uint64_t filesize = toLong(control_buffer);
         uint32_t pkg_size = toInt(control_buffer+sizeof(uint64_t));
         
-        char count[2] = "a\0";
         char data_buffer[pkg_size];
-
-        char name[8] = "cfile-\0";
-        strcat(name, count);
-
-        printf("Name = %s\n", name);
+        
+        char my_ip[20];
+        get_peer_ip(conn_socket, my_ip);
+        //printf("Conectado com %d\n", get_peer_ip(conn_socket)); 
+        mkdir(my_ip, S_IRWXU);
+        char file_name [300];
+        strcpy(file_name, my_ip);
+        strcat(file_name, "/");
+        char name[20] = "cfile-\0";
+        int index = 0;
+        char convertion_buffer[300];
+        while(TRUE){            
+            char aux[300];
+            strcpy(aux, file_name);
+            strcat(aux, name);
+            sprintf(convertion_buffer, "%i", index);
+            strcat(aux, convertion_buffer);
+            FILE * file = fopen(aux, "rb");
+            if (file != NULL){
+                index++;
+                fclose(file);
+            } else {
+                break;
+            }
+        }
+        strcat(file_name, name);
+        strcat(file_name, convertion_buffer);
+        printf("Name = %s\n", file_name);
 
         // Recebe o arquivo
-        FILE* corno = fopen(name, "wb");
+        FILE* corno = fopen(file_name, "wb");
         uint64_t sizeread = 0;
         printf("Filesize  = %lu\n", filesize);
         int count2 = 1;
@@ -159,14 +177,8 @@ int main(int argc, char const *argv[])
         printf("Arquivo recebido com sucesso.\n");
         delete_tcp_socket(conn_socket);
 
-
-        printf("%c\n", count[0]);
-        count[0] = (char) count[0] + 1;
-        printf("%c\n", count[0]);
-
     }
 
-    
     delete_tcp_socket(listener_socket);
     return 0;
 }
