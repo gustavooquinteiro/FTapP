@@ -59,7 +59,7 @@ uint64_t toInt(uint8_t* S)
     return value;
 }
 
-uint32_t MAX_PKG_SIZE = 10000000;
+uint32_t MAX_PKG_SIZE = 4000000;
 
 int main(int argc, char const *argv[])
 {

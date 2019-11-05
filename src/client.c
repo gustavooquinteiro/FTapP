@@ -31,7 +31,7 @@ int ip_is_valid(char* ip);
 
 int send_file(char* file_name, char* ip_address)
 {
-    uint32_t PKG_SIZE = 4000000;
+    uint32_t PKG_SIZE = 1000000;
 
     if(!ip_is_valid(ip_address)){
         printf("Error(IP): Bad address.\n");
@@ -104,9 +104,10 @@ int send_file(char* file_name, char* ip_address)
     // Envia arquivo em pacotes de pkg_size bytes
     uint64_t rest = filesize; 
     uint8_t buffer[pkg_size];
-    int count = 1;
     print_time();
     printf("Sending file...\n");
+    clock_t start;
+    start = clock();
     while(rest > 0){
         int size = min(rest, pkg_size);
         fread(buffer, sizeof(char), size, myfile);
@@ -118,12 +119,26 @@ int send_file(char* file_name, char* ip_address)
             print_time();
             perror("Error(Send file)");
             return SEND_FILE_ERROR;
-        }
-        // printf("Pacote %i com %i bytes enviado.\n", count, bytes_sent);
+        }      
+        rest -= bytes_sent;        
 
-        rest -= bytes_sent; 
-        count++;     
+        double total_sent = (filesize-rest);
+        double total = filesize;
+        double percent = (total_sent/total) * 100;
+
+        clock_t now = clock();
+        double nowf = now;
+        double startf = start;
+        // printf("nowf = %lf, startf = %lf asdsdsadad\n", nowf, startf);
+        double clocksps = CLOCKS_PER_SEC;
+        double time_spent = (now - start)/ clocksps;
+        // printf("time_spent = %lf\n", time_spent);
+        double KBps = (total_sent / time_spent)/100000;
+
+        printf("\rEnviados %lu / %lu  (%.2lf%%)  | Vel. Media: %.2lf KB/s", filesize-rest, filesize, percent, KBps);
+        fflush(stdout);
     }  
+    printf("\n");
     fclose(myfile);
     print_time();
     printf("Success: File sent.\n");
