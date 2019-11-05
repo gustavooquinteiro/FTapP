@@ -1,20 +1,15 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#include <sys/socket.h>
-#include <arpa/inet.h> 
-#include <stdio.h>
+#define SUCCESS 0
+#define REQUEST_ERROR 2
+#define RESPONSE_ERROR 4
+#define SEND_INFO_ERROR 6
+#define SERVER_CONFIRM_ERROR 8
+#define CONN_SOCKET_CREATION_ERROR 10
+#define FILE_ERROR 12
+#define SEND_FILE_ERROR 14
 
-#define PROTOCOL_VALUE 0
-#define PORT 80
-#define ADDRESS "127.0.0.1"
-#define SOCKET_FAILED_EXCEPTION "Socket creation failed"
-#define SERVER_FAILED_EXCEPTION "Connection with server failed"
-
-
-int create_connection();
-struct sockaddr_in connect_with_server(int socket, int port, char * address);
-int send_package();
-int main(int argc, char **argv);
+int send_file(char * file_name, char* ip_address);
 
 #endif

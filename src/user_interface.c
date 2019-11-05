@@ -140,7 +140,7 @@ static void app_activate(GtkApplication *app)
 
     app_window->send_btn = gtk_button_new_with_label("Enviar");
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->send_btn, 2, 0, 1, 1);
-    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(display_send_result_dialog), filename);
+    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send), filename);
 
     app_window->select_file_btn = gtk_button_new_with_label("Selecionar arquivo");
     g_signal_connect(app_window->select_file_btn, "clicked", G_CALLBACK(file_select_callback), NULL);
@@ -174,7 +174,6 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
 
         if(file != NULL)
             update_selected_filename(app_window, filename[0]);
-
         fclose(file);
     }
 

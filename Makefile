@@ -1,47 +1,61 @@
 APP_SERVER_NAME = Server
 APP_CLIENT_NAME = Client
+
 GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
-ECHO = 
+
+SERVER_C = ./src/server.c
+CLIENT_C = ./src/application.c
+
+USER_INTERFACE = src/user_interface.c
+
 GREEN =
 NC =
-ifeq ($(OS), Windows_NT)
-	APP_EXTENSION = .exe
-else
-	APP_EXTENSION =
-endif
 
 ifeq ($(OS), Windows_NT)
+	APP_EXTENSION = .exe
 	REM_CMD = del
 	ECHO = ECHO
 else
+	APP_EXTENSION =
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S), Linux)
 		REM_CMD = rm
-		ECHO = echo -e -n
+		ECHO = echo -e
 		GREEN=\033[0;32m
 		NC=\033[0m
 	endif
 endif
 
-user_interface: build client server
+all: clean build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
 
 build:
 	@ mkdir build
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos\n"
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos"
 
-client: include/user_interface.h include/client.h
-	@ $(ECHO) " Compilando client.c...\n"
-	@ gcc $(GTK_FLAGS) -o $(APP_CLIENT_NAME) src/user_interface.c src/client.c $(GTK_FLAGS)
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado client.c em $(APP_CLIENT_NAME)\n"
+$(APP_CLIENT_NAME): ./build/transport.o ./build/client.o ./build/user_interface.o
+	gcc src/application.c $^ $(GTK_FLAGS) -o $@  
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
-server:
-	@ $(ECHO) " Compilando server.c...\n"
-	@ gcc src/server.c $(GTK_FLAGS) -o $(APP_SERVER_NAME)
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado server.c em $(APP_SERVER_NAME)\n"
+
+build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
+	gcc -c $(GTK_FLAGS) $< -o $@
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
+
+build/client.o: ./src/client.c ./include/client.h 
+	gcc -c $< -o $@ 
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
+	
+build/transport.o: ./src/transport.c ./include/transport.h 
+	gcc -c $< -o $@
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
+
+$(APP_SERVER_NAME): ./build/transport.o
+	gcc $(SERVER_C) $< -o $@
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
 clean:
-	@ $(ECHO) " Limpando workspace...\n"
+	@ $(ECHO) " Limpando workspace..."
 	@ $(REM_CMD) -f $(APP_CLIENT_NAME)$(APP_EXTENSION)
 	@ $(REM_CMD) -f $(APP_SERVER_NAME)$(APP_EXTENSION)
 	@ $(REM_CMD) -f build/*.o
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Workspace limpo\n"
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Workspace limpo"
