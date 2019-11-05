@@ -48,8 +48,6 @@ static void display_send_result_dialog(int send_result)
     GtkWidget* content_area;
     GtkWidget* label;
 
-    g_signal_connect_swapped(dialog, "response", G_CALLBACK(gtk_widget_destroy), dialog);
-
     switch(send_result)
     {
         case SUCCESS:
