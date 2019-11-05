@@ -4,9 +4,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <time.h>
 
-#define DATA_PORT 8074
-#define CONTROL_PORT 8090
+#define PORT 8074
+// #define CONTROL_PORT 8090
 #define LISTENER_CREATION_ERROR "Listener creation error"
 #define CONN_CREATION_ERROR "Connection socket creation error"
 #define REQUEST_ERROR "Client request error"
@@ -17,7 +18,12 @@
 #define CTRLBUFF_SIZE 12
 #define TRUE 1
 
-uint32_t MAX_PKG_SIZE = 1000;
+void print_time(){
+    char buff[100];
+    time_t now = time (0);
+    strftime (buff, 100, "%Y-%m-%d %H:%M:%S.000", localtime (&now));
+    printf ("[%s] ", buff);
+}
 
 void toBytes32(uint8_t* S, uint32_t L)
 {
@@ -53,13 +59,15 @@ uint64_t toInt(uint8_t* S)
     return value;
 }
 
+uint32_t MAX_PKG_SIZE = 4000000;
+
 int main(int argc, char const *argv[])
 {
     int returned_value;
     int attempts = 0;
     tcp_socket* listener_socket = NULL;
     while(listener_socket == NULL && attempts < 3){
-        listener_socket = new_listener_socket(CONTROL_PORT);
+        listener_socket = new_listener_socket(PORT);
         attempts++;
     }
     if (listener_socket == NULL){
@@ -138,35 +146,41 @@ int main(int argc, char const *argv[])
         printf("Name = %s\n", file_name);
 
         // Recebe o arquivo
-        FILE* corno = fopen(file_name, "wb");
+        FILE* file = fopen(file_name, "wb");
         uint64_t sizeread = 0;
         printf("Filesize  = %lu\n", filesize);
         int count2 = 1;
         ssize_t msgsize;
         int64_t rest = filesize;
         int error = 0;
+        print_time();
+        printf("Receiving file...\n");
         while(rest > 0){
             int flag = (rest < pkg_size) ? 0 : 1;
             msgsize = recieve_message(conn_socket, data_buffer, pkg_size, flag);
 
             if(msgsize == -1 || msgsize == 0) {
                 error = 1;
+                print_time();
                 perror(RECEIVE_FILE_ERROR);
                 break;
             }
 
-            fwrite(data_buffer, sizeof(char), msgsize, corno);        
+            fwrite(data_buffer, sizeof(char), msgsize, file);        
             rest -= msgsize;
 
-            printf("Recebidos %li bytes. Faltam %li bytes.\n", msgsize, rest);
-        }
-        
-        fclose(corno);  
+            // print_time();
+            // printf("Recebidos %li bytes. Faltam %li bytes.\n", msgsize, rest);
+        }        
+        fclose(file);  
         if (error == 1) {
             int status = remove(file_name);
             delete_tcp_socket(conn_socket);
             continue;
         }
+
+        print_time();
+        printf("Success: File received.\n");
               
         // Envia resposta
         if(send_message(conn_socket, hello, 29) == -1){

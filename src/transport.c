@@ -33,7 +33,6 @@ tcp_socket* new_listener_socket(int port){
     // Cria o socket
     sock->id = socket(AF_INET, SOCK_STREAM, PROTOCOL_VALUE);
     if(sock->id == -1){
-        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }
     // Seta um endereço de socket para 'adress'
@@ -43,12 +42,10 @@ tcp_socket* new_listener_socket(int port){
     server_address.sin_port = htons(port);
     
     if(bind(sock->id, (SockAddr*)&server_address, sizeof(server_address)) == -1){
-        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }
     
     if(listen(sock->id, LISTEN_QUEUE) == -1){
-        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }   
 
@@ -61,7 +58,6 @@ tcp_socket* new_requester_socket(int port, char* address){
     // Cria o socket
     sock->id = socket(AF_INET, SOCK_STREAM, PROTOCOL_VALUE);
     if(sock->id == -1){
-        perror(SOCKET_FAILED_EXCEPTION);
         return NULL;
     }
     
@@ -73,7 +69,6 @@ tcp_socket* new_requester_socket(int port, char* address){
 
     // Envia requisição de conexão
     if(connect(sock->id, (SockAddr*)&server_address, sizeof(server_address)) == -1){
-        perror(CONNECTION_FAILED_EXCEPTION); 
         return NULL;    
     }
 
