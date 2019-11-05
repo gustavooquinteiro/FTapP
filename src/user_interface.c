@@ -36,7 +36,6 @@ static void send(GtkWidget *widget, gpointer data)
     char** name = data;
     GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
     char* ip = gtk_entry_get_text(entry);
-    printf("\nIP FODA = %s\n", ip);
     display_send_result_dialog(send_file(name[0], ip));
 }
 
@@ -184,7 +183,6 @@ static void update_selected_filename(ApplicationWindow *app_window, char *name)
     strcat(buffer, "Arquivo escolhido: ");
     strcat(buffer, name);
     char *new_filename = buffer;
-    printf("Novo nome: %s", new_filename);
     char *format = "<span font_desc=\"16.0\">%s</span>";
     char *markup;
     markup = g_markup_printf_escaped(format, new_filename);
