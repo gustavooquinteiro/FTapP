@@ -1,7 +1,21 @@
 #include "../include/user_interface.h"
 #include "../include/client.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <gtk/gtk.h>
+
+typedef struct applicationWindow ApplicationWindow;
+
+static void file_select_callback(GtkWidget *widget, gpointer data);
+static void app_activate(GtkApplication *app);
+static ApplicationWindow *create_application_window();
+static void update_selected_filename(ApplicationWindow *app_window, char *name);
+static void display_send_result_dialog(int send_result);
+
 static GtkWidget *app_container;
+
+char** filename;
 
 struct applicationWindow
 {
@@ -16,13 +30,86 @@ struct applicationWindow
 
 static ApplicationWindow *app_window;
 
+
+static void send(GtkWidget *widget, gpointer data)
+{
+    char** name = data;
+    GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
+    char* ip = gtk_entry_get_text(entry);
+    printf("\nIP FODA = %s\n", ip);
+    display_send_result_dialog(send_file(name[0], ip));
+}
+
+static void display_send_result_dialog(int send_result)
+{
+    GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
+
+    GtkWidget* dialog;
+    GtkWidget* content_area;
+    GtkWidget* label;
+
+    g_signal_connect_swapped(dialog, "response", G_CALLBACK(gtk_widget_destroy), dialog);
+
+    switch(send_result)
+    {
+        case SUCCESS:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Arquivo enviado com sucesso.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case REQUEST_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no requerimento.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case RESPONSE_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na resposta.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case SEND_INFO_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro ao enviar info.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case SERVER_CONFIRM_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na confirmação do penis.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case CONN_SOCKET_CREATION_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na criação do penis.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case FILE_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no arquivo.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+
+        case SEND_FILE_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no envio do penis");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
+    }
+}
+
 int app_start()
 {
     GtkApplication *app;
     int status;
+    filename = (char**)malloc(sizeof(char*));
 
     app = gtk_application_new("ufba.mata59.trabalho", G_APPLICATION_FLAGS_NONE);
-    g_signal_connect(app, "activate", G_CALLBACK (app_activate), NULL);
+    g_signal_connect(app, "activate", G_CALLBACK(app_activate), NULL);
     status = g_application_run(G_APPLICATION (app), 0, NULL);
     g_object_unref(app);
 
@@ -52,8 +139,8 @@ static void app_activate(GtkApplication *app)
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->ip_addr_textbox, 1, 0, 1, 1);
 
     app_window->send_btn = gtk_button_new_with_label("Enviar");
-    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send_package), NULL);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->send_btn, 2, 0, 1, 1);
+    g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(display_send_result_dialog), filename);
 
     app_window->select_file_btn = gtk_button_new_with_label("Selecionar arquivo");
     g_signal_connect(app_window->select_file_btn, "clicked", G_CALLBACK(file_select_callback), NULL);
@@ -79,26 +166,26 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
 
     if(res == GTK_RESPONSE_ACCEPT)
     {
-        char *filename;
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
-        filename = gtk_file_chooser_get_filename(chooser);
+        filename[0] = gtk_file_chooser_get_filename(chooser);
+
         FILE *file;
-        file = fopen(filename, "r");
+        file = fopen(filename[0], "r");
 
         if(file != NULL)
-        update_selected_filename(app_window, filename);
+            update_selected_filename(app_window, filename[0]);
 
-        g_free(filename);
+        fclose(file);
     }
 
     gtk_widget_destroy(dialog);
 }
 
-static void update_selected_filename(ApplicationWindow *app_window, char *filename)
+static void update_selected_filename(ApplicationWindow *app_window, char *name)
 {
     char buffer[120];
     strcat(buffer, "Arquivo escolhido: ");
-    strcat(buffer, filename);
+    strcat(buffer, name);
     char *new_filename = buffer;
     printf("Novo nome: %s", new_filename);
     char *format = "<span font_desc=\"16.0\">%s</span>";
