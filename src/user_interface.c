@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 
+
 typedef struct applicationWindow ApplicationWindow;
 
 static void file_select_callback(GtkWidget *widget, gpointer data);
@@ -37,6 +38,7 @@ static void send(GtkWidget *widget, gpointer data)
     GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
     char* ip = gtk_entry_get_text(entry);
     display_send_result_dialog(send_file(name[0], ip));
+    printf("\n");
 }
 
 static void display_send_result_dialog(int send_result)
@@ -44,55 +46,64 @@ static void display_send_result_dialog(int send_result)
     GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
 
     GtkWidget* dialog;
+    GtkWidget* dialog2;
     GtkWidget* content_area;
     GtkWidget* label;
 
     switch(send_result)
     {
         case SUCCESS:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Arquivo enviado com sucesso.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Sucesso: Arquivo enviado com sucesso.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
+        case INVALID_IP_ERROR:
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro: Digite um endereço de IP válido.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            break;
         case REQUEST_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no requerimento.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro: Não foi possível estabelecer a conexão com o servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
         case RESPONSE_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na resposta.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro: Não foi possível estabelecer a conexão com o servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
         case SEND_INFO_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro ao enviar info.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro: Não foi possível estabelecer a conexão com o servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
         case SERVER_CONFIRM_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na confirmação do penis.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Sucesso: Arquivo enviado com sucesso.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            dialog2 = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Aviso: Não foi possível obter confirmação do servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
-        case CONN_SOCKET_CREATION_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro na criação do penis.");
+        case CONN_SOCKET_CREATION_ERROR:            
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error: Não foi possível estabelecer a conexão com o servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
         case FILE_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no arquivo.");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error: Não foi possível abrir o arquivo selecionado.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
         case SEND_FILE_ERROR:
-            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Erro no envio do penis");
+            dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error: Houve uma falha durante o envio do arquivo selecionado. Por favor, tente novamente.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
@@ -179,7 +190,7 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
 
 static void update_selected_filename(ApplicationWindow *app_window, char *name)
 {
-    char buffer[120];
+    char buffer[1000];
     strcat(buffer, "Arquivo escolhido: ");
     strcat(buffer, name);
     char *new_filename = buffer;
