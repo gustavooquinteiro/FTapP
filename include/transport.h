@@ -11,7 +11,7 @@
 typedef struct tcp_socket tcp_socket;
 
 // 
-tcp_socket* new_requester_socket(int port, char* address);
+tcp_socket* new_requester_socket(int port, const char* address);
 
 //
 tcp_socket* new_listener_socket(int port);

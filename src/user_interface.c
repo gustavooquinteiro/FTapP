@@ -37,7 +37,7 @@ static void send(GtkWidget *widget, gpointer data)
 {
     char** name = data;
     GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
-    char* ip = gtk_entry_get_text(entry);
+    const char* ip = gtk_entry_get_text(entry);
     display_send_result_dialog(send_file(name[0], ip));
     printf("\n");
 }

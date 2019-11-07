@@ -11,6 +11,6 @@
 #define SEND_FILE_ERROR 14
 #define INVALID_IP_ERROR 16
 
-int send_file(char * file_name, char* ip_address);
+int send_file(char * file_name, const char* ip_address);
 
 #endif

@@ -27,9 +27,9 @@ uint32_t toInt(uint8_t* bytes);
 
 uint64_t get_filesize(FILE* file);
 
-int ip_is_valid(char* ip);
+int ip_is_valid(const char* ip);
 
-int send_file(char* file_name, char* ip_address)
+int send_file(char* file_name, const char* ip_address)
 {
     uint32_t PKG_SIZE = 1000000;
 
@@ -208,7 +208,7 @@ uint64_t get_filesize(FILE* file){
     return size;
 }
 
-int ip_is_valid(char* ip){
+int ip_is_valid(const char* ip){
     int len = strlen(ip);
     if(len < 7 || len > 15) return 0;
 

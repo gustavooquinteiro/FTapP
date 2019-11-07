@@ -52,7 +52,7 @@ tcp_socket* new_listener_socket(int port){
     return sock;
 }
 
-tcp_socket* new_requester_socket(int port, char* address){
+tcp_socket* new_requester_socket(int port, const char* address){
     tcp_socket* sock = (tcp_socket*) malloc(sizeof(tcp_socket));
 
     // Cria o socket
