@@ -1,6 +1,5 @@
 # :earth_americas: FTapP
-![](https://img.shields.io/badge/platform-windows%20%7C%20linux-blue) ![](https://img.shields.io/badge/gtk-3.20-orange) ![](https://img.shields.io/cocoapods/l/AFNetworking) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/gustavooquinteiro/FTapP?color=green)
-
+![Plataforma](https://img.shields.io/badge/platform-linux-blue) ![GTK version](https://img.shields.io/badge/gtk-3.20-orange) ![Licença](https://img.shields.io/cocoapods/l/AFNetworking) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/gustavooquinteiro/FTapP?color=green) ![Contribuidores](https://img.shields.io/github/contributors/gustavooquinteiro/FTapP?color=yellow) 
 Trabalho realizado para a disciplina MATA59 - Redes de Computadores, ministrada pelo professor Gustavo Bittencourt Figueiredo, do Departamento de Ciência da Computação do Instituto de Matemática e Estatistica da Universidade Federal da Bahia.
 
 ## :dart: Objetivo 
