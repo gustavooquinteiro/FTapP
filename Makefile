@@ -2,7 +2,7 @@ APP_SERVER_NAME = Server
 APP_CLIENT_NAME = Client
 
 GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
-
+FLAGS = -lpthread
 SERVER_C = ./src/server.c
 CLIENT_C = ./src/application.c
 
@@ -42,7 +42,7 @@ build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 build/client.o: ./src/client.c ./include/client.h 
-	gcc -c $< -o $@ 
+	gcc -c $< $(FLAGS) -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 	
 build/transport.o: ./src/transport.c ./include/transport.h 
