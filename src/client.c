@@ -1,6 +1,7 @@
 #include "../include/client.h"
 
 #include "../include/transport.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -8,7 +9,18 @@
 #include <time.h>
 
 #define PORT 8074
-// #define CONTROL_PORT 8090
+#define CONTROL_PORT 8090
+#define PKG_SIZE 1000000
+
+typedef struct thread_data
+{
+    tcp_socket * socket;
+    FILE* file;
+} Data;
+
+
+uint32_t pkg_size = 0;
+uint64_t filesize = 0;
 
 void print_time(){
     char buff[100];
@@ -29,34 +41,19 @@ uint64_t get_filesize(FILE* file);
 
 int ip_is_valid(const char* ip);
 
-int send_file(char* file_name, const char* ip_address)
+void * create_control_connection(void * args)
 {
-    uint32_t PKG_SIZE = 1000000;
-
-    if(!ip_is_valid(ip_address)){
-        printf("Error(IP): Bad address.\n");
-        return INVALID_IP_ERROR;
-    }
-    printf("Success: Valid IP.\n");
-
-    printf("Arquivo: %s\n",file_name);
+    Data *my_data = (Data *) args;
+    tcp_socket* socket = my_data->socket;
+    FILE* myfile = my_data->file;
+    
     int returned_value;
-    FILE* myfile = fopen(file_name, "rb"); 
-    if (myfile == NULL){
-        perror("Error(File)");
-        return FILE_ERROR;
-    }
-    printf("Success: Open file.\n");
-
-
-
-    // Cria socket de conexão
+   // Cria socket de conexão
     printf("Creating socket...\n");
-    tcp_socket* socket = new_requester_socket(PORT, ip_address);
     if(socket == NULL){
         fclose(myfile);
         perror("Error(Socket creation)");
-        return CONN_SOCKET_CREATION_ERROR;
+        return (void *)CONN_SOCKET_CREATION_ERROR;
     }
     printf("Success: Socket creation.\n");
 
@@ -67,7 +64,7 @@ int send_file(char* file_name, const char* ip_address)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Request)");
-        return REQUEST_ERROR;
+        return (void *) REQUEST_ERROR;
     }
     printf("Success: Request sent.\n");
 
@@ -79,16 +76,16 @@ int send_file(char* file_name, const char* ip_address)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Response)");
-        return RESPONSE_ERROR;
+        return (void *) RESPONSE_ERROR;
     }
     printf("Success: Response received.\n");
 
     uint32_t max_pkg = toInt(max_pkg_bytes);
     // Calcula tamanho do arquivo  
-    uint64_t filesize = get_filesize(myfile);
+    filesize = get_filesize(myfile);
 
     // Envia o tamanho do arquivo e tamanho de cada pacote
-    uint32_t pkg_size = min(max_pkg, PKG_SIZE);    
+    pkg_size = min(max_pkg, PKG_SIZE);    
     uint8_t sizes_bytes[8 + 4];
     toBytes64(sizes_bytes, filesize);
     toBytes32(sizes_bytes + 8, pkg_size);
@@ -97,9 +94,41 @@ int send_file(char* file_name, const char* ip_address)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Send info)");
-        return SEND_INFO_ERROR;
+        return (void *) SEND_INFO_ERROR;
     }
-    printf("Success: Info sent.\n");
+    printf("Success: Info sent.\n"); 
+    return (void *) SUCCESS;
+}
+
+int send_file(char* file_name, const char* ip_address)
+{
+
+    if(!ip_is_valid(ip_address)){
+        printf("Error(IP): Bad address.\n");
+        return INVALID_IP_ERROR;
+    }
+    printf("Success: Valid IP.\n");
+    int returned_value;
+
+    printf("Arquivo: %s\n",file_name);
+    FILE* myfile = fopen(file_name, "rb"); 
+    if (myfile == NULL){
+        perror("Error(File)");
+        return FILE_ERROR;
+    }
+    printf("Success: Open file.\n");
+    
+    tcp_socket* socket = new_requester_socket(PORT, ip_address);
+    
+    pthread_t threads[2];
+    int rc;
+    Data data[2];
+    data[0].socket = socket;
+    data[0].file = myfile;
+    rc = pthread_create(&threads[0], NULL, create_control_connection, (void *)&data[0]);
+    
+
+
 
     // Envia arquivo em pacotes de pkg_size bytes
     uint64_t rest = filesize; 
