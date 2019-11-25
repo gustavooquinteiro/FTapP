@@ -42,7 +42,7 @@ build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 build/client.o: ./src/client.c ./include/client.h 
-	gcc -c $< $(FLAGS) -o $@ 
+	gcc -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 	
 build/transport.o: ./src/transport.c ./include/transport.h 
@@ -50,7 +50,7 @@ build/transport.o: ./src/transport.c ./include/transport.h
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 $(APP_SERVER_NAME): ./build/transport.o
-	gcc $(SERVER_C) $< -o $@
+	gcc $(SERVER_C) $< $(FLAGS) -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
 clean:
