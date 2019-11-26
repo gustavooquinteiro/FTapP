@@ -47,7 +47,6 @@ static void display_send_result_dialog(int send_result)
     GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
 
     GtkWidget* dialog;
-    GtkWidget* dialog2;
     GtkWidget* content_area;
     GtkWidget* label;
 
@@ -86,12 +85,11 @@ static void display_send_result_dialog(int send_result)
             dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "Sucesso: Arquivo enviado com sucesso.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
-            dialog2 = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Aviso: Não foi possível obter confirmação do servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
             break;
 
-        case CONN_SOCKET_CREATION_ERROR:            
+        case CONN_SOCKET_CREATION_ERROR:
             dialog = gtk_message_dialog_new (GTK_WINDOW(app_container), flags, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error: Não foi possível estabelecer a conexão com o servidor.");
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
@@ -133,31 +131,38 @@ static void app_activate(GtkApplication *app)
     gtk_window_set_title (GTK_WINDOW (app_container), "Trabalho MATA59");
     gtk_window_set_default_size (GTK_WINDOW (app_container), 200, 200);
     gtk_window_set_resizable(GTK_WINDOW (app_container), FALSE);
+    gtk_widget_set_hexpand(app_container, FALSE);
 
     app_window->grid = gtk_grid_new();
     gtk_grid_set_column_spacing(GTK_GRID(app_window->grid), 5);
-    gtk_widget_set_vexpand(app_window->grid, TRUE);
+    gtk_widget_set_vexpand(app_window->grid, FALSE);
+    gtk_widget_set_hexpand(app_window->grid, FALSE);
     gtk_container_add(GTK_CONTAINER(app_container), app_window->grid);
 
     app_window->ip_addr_label = gtk_label_new("Digite o endereço IP:");
     gtk_label_set_markup(GTK_LABEL(app_window->ip_addr_label), "<span font_desc=\"16.0\">Digite o endereço IP:</span>");
+    gtk_widget_set_hexpand(app_window->ip_addr_label, FALSE);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->ip_addr_label, 0, 0, 1, 1);
 
     app_window->ip_addr_textbox = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(app_window->ip_addr_textbox), "Digite o endereco IP do destinatario");
+    gtk_widget_set_hexpand(app_window->ip_addr_textbox, FALSE);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->ip_addr_textbox, 1, 0, 1, 1);
 
     app_window->send_btn = gtk_button_new_with_label("Enviar");
+    gtk_widget_set_hexpand(app_window->send_btn, FALSE);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->send_btn, 2, 0, 1, 1);
     g_signal_connect(app_window->send_btn, "clicked", G_CALLBACK(send), filename);
 
     app_window->select_file_btn = gtk_button_new_with_label("Selecionar arquivo");
     g_signal_connect(app_window->select_file_btn, "clicked", G_CALLBACK(file_select_callback), NULL);
+    gtk_widget_set_hexpand(app_window->select_file_btn, FALSE);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->select_file_btn, 3, 0, 1, 1);
-
 
     app_window->selected_file_label = gtk_label_new("Arquivo escolhido: ");
     gtk_label_set_markup(GTK_LABEL(app_window->selected_file_label), "<span font_desc=\"16.0\">Arquivo escolhido</span>");
+    gtk_widget_set_hexpand(app_window->selected_file_label, FALSE);
+    gtk_widget_set_vexpand(app_window->selected_file_label, FALSE);
     gtk_grid_attach(GTK_GRID(app_window->grid), app_window->selected_file_label, 0, 1, 1, 1);
 
     gtk_widget_show_all(app_container);
@@ -192,12 +197,15 @@ static void file_select_callback(GtkWidget *widget, gpointer data)
 static void update_selected_filename(ApplicationWindow *app_window, char *name)
 {
     char buffer[1000];
-    strcat(buffer, "Arquivo escolhido: ");
-    strcat(buffer, name);
-    char *new_filename = buffer;
+    char buffer2[256];
+    strcpy(buffer, "Arquivo escolhido: ");
+
+    char *token = strrchr(name, '\\');
+    strcat(buffer, token);
+
     char *format = "<span font_desc=\"16.0\">%s</span>";
     char *markup;
-    markup = g_markup_printf_escaped(format, new_filename);
+    markup = g_markup_printf_escaped(format, buffer);
     gtk_label_set_markup(GTK_LABEL(app_window->selected_file_label), markup);
     g_free(markup);
 }
