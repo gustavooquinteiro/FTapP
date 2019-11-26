@@ -1,14 +1,25 @@
 #include "../include/client.h"
 
 #include "../include/transport.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h> 
+#include <stdio.h>
 #include <time.h>
 
 #define PORT 8074
-// #define CONTROL_PORT 8090
+#define CONTROL_PORT 8090
+#define PKG_SIZE 1000000
+
+typedef struct thread_data
+{
+    tcp_socket * socket;
+    FILE* file;
+} Data;
+
+
+uint32_t pkg_size = 0;
+uint64_t filesize = 0;
 
 void print_time(){
     char buff[100];
@@ -29,78 +40,12 @@ uint64_t get_filesize(FILE* file);
 
 int ip_is_valid(const char* ip);
 
-int send_file(char* file_name, const char* ip_address)
+void * create_data_connection(Data args)
 {
-    uint32_t PKG_SIZE = 1000000;
-
-    if(!ip_is_valid(ip_address)){
-        printf("Error(IP): Bad address.\n");
-        return INVALID_IP_ERROR;
-    }
-    printf("Success: Valid IP.\n");
-
-    printf("Arquivo: %s\n",file_name);
     int returned_value;
-    FILE* myfile = fopen(file_name, "rb"); 
-    if (myfile == NULL){
-        perror("Error(File)");
-        return FILE_ERROR;
-    }
-    printf("Success: Open file.\n");
-
-
-
-    // Cria socket de conexão
-    printf("Creating socket...\n");
-    tcp_socket* socket = new_requester_socket(PORT, ip_address);
-    if(socket == NULL){
-        fclose(myfile);
-        perror("Error(Socket creation)");
-        return CONN_SOCKET_CREATION_ERROR;
-    }
-    printf("Success: Socket creation.\n");
-
-    // Envia requisição para conexão
-    printf("Sending request...\n");
-    char request_msg[1] = {'A'};
-    if(send_message(socket, request_msg, 1) == -1) {
-        delete_tcp_socket(socket);
-        fclose(myfile);
-        perror("Error(Request)");
-        return REQUEST_ERROR;
-    }
-    printf("Success: Request sent.\n");
-
-    // Recebe resposta do servidor (maximo de bytes no pacote)
-    uint8_t max_pkg_bytes[4];
-    printf("Waiting response...\n");
-    returned_value = recieve_message(socket, max_pkg_bytes, 4, 0);
-    if( returned_value == -1 || returned_value == 0){
-        delete_tcp_socket(socket);
-        fclose(myfile);
-        perror("Error(Response)");
-        return RESPONSE_ERROR;
-    }
-    printf("Success: Response received.\n");
-
-    uint32_t max_pkg = toInt(max_pkg_bytes);
-    // Calcula tamanho do arquivo  
-    uint64_t filesize = get_filesize(myfile);
-
-    // Envia o tamanho do arquivo e tamanho de cada pacote
-    uint32_t pkg_size = min(max_pkg, PKG_SIZE);    
-    uint8_t sizes_bytes[8 + 4];
-    toBytes64(sizes_bytes, filesize);
-    toBytes32(sizes_bytes + 8, pkg_size);
-    printf("Sending file info...\n");
-    if(send_message(socket, sizes_bytes, 8 + 4) == -1){
-        delete_tcp_socket(socket);
-        fclose(myfile);
-        perror("Error(Send info)");
-        return SEND_INFO_ERROR;
-    }
-    printf("Success: Info sent.\n");
-
+    tcp_socket * socket = args.socket;
+    FILE* myfile = args.file;
+        
     // Envia arquivo em pacotes de pkg_size bytes
     uint64_t rest = filesize; 
     uint8_t buffer[pkg_size];
@@ -118,25 +63,25 @@ int send_file(char* file_name, const char* ip_address)
             fclose(myfile);
             print_time();
             perror("Error(Send file)");
-            return SEND_FILE_ERROR;
+            return (void *)SEND_FILE_ERROR;
         }      
         rest -= bytes_sent;        
 
-        double total_sent = (filesize-rest);
-        double total = filesize;
-        double percent = (total_sent/total) * 100;
+       // double total_sent = (filesize-rest);
+        //double total = filesize;
+        //double percent = (total_sent/total) * 100;
 
-        clock_t now = clock();
-        double nowf = now;
-        double startf = start;
+        //clock_t now = clock();
+        //double nowf = now;
+        //double startf = start;
         // printf("nowf = %lf, startf = %lf asdsdsadad\n", nowf, startf);
-        double clocksps = CLOCKS_PER_SEC;
-        double time_spent = (now - start)/ clocksps;
+        //double clocksps = CLOCKS_PER_SEC;
+        //double time_spent = (now - start)/ clocksps;
         // printf("time_spent = %lf\n", time_spent);
-        double KBps = (total_sent / time_spent)/100000;
+        //double KBps = (total_sent / time_spent)/100000;
 
-        printf("\rEnviados %lu / %lu  (%.2lf%%)  | Vel. Media: %.2lf KB/s", filesize-rest, filesize, percent, KBps);
-        fflush(stdout);
+       // printf("\rEnviados %lu / %lu  (%.2lf%%)  | Vel. Media: %.2lf KB/s", filesize-rest, filesize, percent, KBps);
+       // fflush(stdout);
     }  
     printf("\n");
     fclose(myfile);
@@ -150,13 +95,101 @@ int send_file(char* file_name, const char* ip_address)
     if(returned_value == -1 || returned_value == 0){
         delete_tcp_socket(socket);
         perror("Warning(Server confirm)");
-        return SERVER_CONFIRM_ERROR;
+        return (void *)SERVER_CONFIRM_ERROR;
     }
     server_msg[returned_value] = '\0';    
 
     delete_tcp_socket(socket);
     printf("Server confirmation received: %s\n", server_msg);
-    return SUCCESS;
+    return (void *)SUCCESS;
+}
+    
+void * create_control_connection(Data args)
+{
+    int returned_value;
+    tcp_socket* socket = args.socket;
+    FILE* myfile = args.file;
+    
+   // Cria socket de conexão
+    printf("Creating socket...\n");
+    if(socket == NULL){
+        fclose(myfile);
+        perror("Error(Socket creation)");
+        return (void *)CONN_SOCKET_CREATION_ERROR;
+    }
+    printf("Success: Socket creation.\n");
+
+    // Envia requisição para conexão
+    printf("Sending request...\n");
+    char request_msg[1] = {'A'};
+    if(send_message(socket, request_msg, 1) == -1) {
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        perror("Error(Request)");
+        return (void *) REQUEST_ERROR;
+    }
+    printf("Success: Request sent.\n");
+
+    // Recebe resposta do servidor (maximo de bytes no pacote)
+    uint8_t max_pkg_bytes[4];
+    printf("Waiting response...\n");
+    returned_value = recieve_message(socket, max_pkg_bytes, 4, 0);
+    if( returned_value == -1 || returned_value == 0){
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        perror("Error(Response)");
+        return (void *) RESPONSE_ERROR;
+    }
+    printf("Success: Response received.\n");
+
+    uint32_t max_pkg = toInt(max_pkg_bytes);
+    // Calcula tamanho do arquivo  
+    filesize = get_filesize(myfile);
+
+    // Envia o tamanho do arquivo e tamanho de cada pacote
+    pkg_size = min(max_pkg, PKG_SIZE);    
+    uint8_t sizes_bytes[8 + 4];
+    toBytes64(sizes_bytes, filesize);
+    toBytes32(sizes_bytes + 8, pkg_size);
+    printf("Sending file info...\n");
+    if(send_message(socket, sizes_bytes, 8 + 4) == -1){
+        delete_tcp_socket(socket);
+        fclose(myfile);
+        perror("Error(Send info)");
+        return (void *) SEND_INFO_ERROR;
+    }
+    printf("Success: Info sent.\n"); 
+    return (void *) SUCCESS;
+}
+
+int send_file(char* file_name, const char* ip_address)
+{
+
+    if(!ip_is_valid(ip_address)){
+        printf("Error(IP): Bad address.\n");
+        return INVALID_IP_ERROR;
+    }
+    printf("Success: Valid IP.\n");
+    int returned_value;
+
+    printf("Arquivo: %s\n",file_name);
+    FILE* myfile = fopen(file_name, "rb"); 
+    if (myfile == NULL){
+        perror("Error(File)");
+        return FILE_ERROR;
+    }
+    printf("Success: Open file.\n");
+    
+
+    tcp_socket* connection_socket = new_requester_socket(PORT, ip_address);
+
+    Data data;
+    data.socket = connection_socket;
+    data.file = myfile;
+    
+    create_control_connection(data);
+    create_data_connection(data);
+
 }
 
 
