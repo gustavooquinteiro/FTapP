@@ -32,26 +32,26 @@ build:
 	@ mkdir build
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos"
 
-$(APP_CLIENT_NAME): ./build/transport.o ./build/client.o ./build/user_interface.o
-	gcc src/application.c $^ $(GTK_FLAGS) -o $@  
+$(APP_CLIENT_NAME): ./build/requisition_queue.o ./build/network.o ./build/transport.o \
+./build/client.o ./build/user_interface.o	
+	gcc $(CLIENT_C) $^ $(GTK_FLAGS) -o $@  
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
+
+$(APP_SERVER_NAME): ./build/transport.o ./build/requisition_queue.o ./build/network.o
+	gcc $(SERVER_C) $^ $(FLAGS) -o $@
+	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
+
 
 
 build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
 	gcc -c $(GTK_FLAGS) $< -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
-build/client.o: ./src/client.c ./include/client.h 
+build/%.o: ./src/%.c ./include/%.h 
 	gcc -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 	
-build/transport.o: ./src/transport.c ./include/transport.h 
-	gcc -c $< -o $@
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
-$(APP_SERVER_NAME): ./build/transport.o
-	gcc $(SERVER_C) $< $(FLAGS) -o $@
-	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
 clean:
 	@ $(ECHO) " Limpando workspace..."
