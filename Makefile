@@ -26,7 +26,7 @@ else
 	endif
 endif
 
-all: clean build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
+all: build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
 
 build:
 	@ mkdir build
