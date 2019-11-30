@@ -13,7 +13,7 @@
 
 typedef struct thread_data
 {
-    tcp_socket * socket;
+    ConnectionSocket * socket;
     FILE* file;
 } Data;
 
@@ -43,7 +43,7 @@ int ip_is_valid(const char* ip);
 int create_data_connection(Data args)
 {
     int returned_value;
-    tcp_socket * socket = args.socket;
+    ConnectionSocket * socket = args.socket;
     FILE* myfile = args.file;
         
     // Envia arquivo em pacotes de pkg_size bytes
@@ -59,7 +59,7 @@ int create_data_connection(Data args)
 
         int bytes_sent = send_message(socket, buffer, size);
         if(bytes_sent == -1){ 
-            delete_tcp_socket(socket);
+            delete_connection_socket(socket);
             fclose(myfile);
             print_time();
             perror("Error(Send file)");
@@ -75,15 +75,15 @@ int create_data_connection(Data args)
     // Recebe mensagem de confirmação
     char server_msg[50];
     printf("Waiting confirmation...\n");
-    returned_value = recieve_message(socket, server_msg, PKG_SIZE, 0);
+    returned_value = receive_message(socket, server_msg, PKG_SIZE, 0);
     if(returned_value == -1 || returned_value == 0){
-        delete_tcp_socket(socket);
+        delete_connection_socket(socket);
         perror("Warning(Server confirm)");
         return SERVER_CONFIRM_ERROR;
     }
     server_msg[returned_value] = '\0';    
 
-    delete_tcp_socket(socket);
+    delete_connection_socket(socket);
     printf("Server confirmation received: %s\n", server_msg);
     return SUCCESS;
 }
@@ -91,7 +91,7 @@ int create_data_connection(Data args)
 int create_control_connection(Data args)
 {
     int returned_value;
-    tcp_socket* socket = args.socket;
+    ConnectionSocket* socket = args.socket;
     FILE* myfile = args.file;
     
    // Cria socket de conexão
@@ -107,7 +107,7 @@ int create_control_connection(Data args)
     printf("Sending request...\n");
     char request_msg[1] = {'A'};
     if(send_message(socket, request_msg, 1) == -1) {
-        delete_tcp_socket(socket);
+        delete_connection_socket(socket);
         fclose(myfile);
         perror("Error(Request)");
         return REQUEST_ERROR;
@@ -117,9 +117,9 @@ int create_control_connection(Data args)
     // Recebe resposta do servidor (maximo de bytes no pacote)
     uint8_t max_pkg_bytes[4];
     printf("Waiting response...\n");
-    returned_value = recieve_message(socket, max_pkg_bytes, 4, 0);
+    returned_value = receive_message(socket, max_pkg_bytes, 4, 0);
     if( returned_value == -1 || returned_value == 0){
-        delete_tcp_socket(socket);
+        delete_connection_socket(socket);
         fclose(myfile);
         perror("Error(Response)");
         return RESPONSE_ERROR;
@@ -137,7 +137,7 @@ int create_control_connection(Data args)
     toBytes32(sizes_bytes + 8, pkg_size);
     printf("Sending file info...\n");
     if(send_message(socket, sizes_bytes, 8 + 4) == -1){
-        delete_tcp_socket(socket);
+        delete_connection_socket(socket);
         fclose(myfile);
         perror("Error(Send info)");
         return SEND_INFO_ERROR;
@@ -165,7 +165,7 @@ int send_file(char* file_name, const char* ip_address)
     printf("Success: Open file.\n");
     
 
-    tcp_socket* connection_socket = new_requester_socket(PORT, ip_address);
+    ConnectionSocket* connection_socket = new_requester_socket(PORT, ip_address);
 
     Data data;
     data.socket = connection_socket;

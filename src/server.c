@@ -67,7 +67,7 @@ uint32_t MAX_PKG_SIZE = 4000000;
 void * receive_file(void * socket_connection)
 {
     int returned_value;
-    tcp_socket* conn_socket = (tcp_socket*) socket_connection;
+    ConnectionSocket* conn_socket = (ConnectionSocket*) socket_connection;
     printf("hello from thread\n"); 
     char* hello = "Arquivo recebido com sucesso.";
     char control_buffer[CTRLBUFF_SIZE];
@@ -76,15 +76,15 @@ void * receive_file(void * socket_connection)
     toBytes32(max_pkg_bytes, MAX_PKG_SIZE);
     if(send_message(conn_socket, max_pkg_bytes, sizeof(uint32_t)) == -1){
         perror(RESPONSE_ERROR);
-        delete_tcp_socket(conn_socket);
+        delete_connection_socket(conn_socket);
         pthread_exit(NULL);
     }
 
     // Recebe o tamanho do arquivo e tamanho de cada pacote, determinado pelo cliente
-    returned_value = recieve_message(conn_socket, control_buffer, CTRLBUFF_SIZE, 0);
+    returned_value = receive_message(conn_socket, control_buffer, CTRLBUFF_SIZE, 0);
     if(returned_value == -1 || returned_value == 0){        
         perror(RECEIVE_INFO_ERROR);
-        delete_tcp_socket(conn_socket);
+        delete_connection_socket(conn_socket);
         pthread_exit(NULL);        
     }
     uint64_t filesize = toLong(control_buffer);
@@ -137,7 +137,7 @@ void * receive_file(void * socket_connection)
     printf("Receiving file...\n");
     while(rest > 0){
         int flag = (rest < pkg_size) ? 0 : 1;
-        msgsize = recieve_message(conn_socket, data_buffer, pkg_size, flag);
+        msgsize = receive_message(conn_socket, data_buffer, pkg_size, flag);
 
         if(msgsize == -1 || msgsize == 0) {
             error = 1;
@@ -155,7 +155,7 @@ void * receive_file(void * socket_connection)
     fclose(file);  
     if (error == 1) {
         int status = remove(file_name);
-        delete_tcp_socket(conn_socket);
+        delete_connection_socket(conn_socket);
         pthread_exit(NULL);
     }
 
@@ -164,12 +164,12 @@ void * receive_file(void * socket_connection)
             
     // Envia resposta
     if(send_message(conn_socket, hello, 29) == -1){
-        delete_tcp_socket(conn_socket);
+        delete_connection_socket(conn_socket);
         perror(SERVER_CONFIRM_ERROR);
         pthread_exit(NULL);
     }
     printf("Arquivo recebido com sucesso.\n");
-    delete_tcp_socket(conn_socket);  
+    delete_connection_socket(conn_socket);  
     printf("end from thread\n"); 
     pthread_exit(NULL);
 }
@@ -179,7 +179,7 @@ int main(int argc, char const *argv[])
 {
     int returned_value;
     int attempts = 0;
-    tcp_socket* listener_socket = NULL;
+    ListenerSocket* listener_socket = NULL;
     
     if (pthread_mutex_init(&lock, NULL) != 0)
     {
@@ -198,28 +198,28 @@ int main(int argc, char const *argv[])
     
     while(TRUE){
         char control_buffer[CTRLBUFF_SIZE];
-        tcp_socket* conn_socket = new_connection_socket(listener_socket);
+        ConnectionSocket* conn_socket = new_connection_socket(listener_socket);
         if (conn_socket == NULL){
             perror(CONN_CREATION_ERROR);
             continue;
         }
         
-        returned_value = recieve_message(conn_socket, control_buffer, sizeof(control_buffer), 0);
+        returned_value = receive_message(conn_socket, control_buffer, sizeof(control_buffer), 0);
         if(returned_value == -1 || returned_value == 0){        
             perror(REQUEST_ERROR);
-            delete_tcp_socket(conn_socket);
+            delete_connection_socket(conn_socket);
             continue;
         }
         if(control_buffer[0] != 'A'){
-            delete_tcp_socket(conn_socket);
+            delete_connection_socket(conn_socket);
             continue;
         }
         
         pthread_t thread;
-        pthread_create(&thread, NULL, receive_file, (void *)conn_socket);
-        printf("Criei a thread fodasse\n");
+        pthread_create(&thread, NULL, receive_file, (void*)conn_socket);
+        // printf("Criei a thread fodasse\n");
     }
 
-    delete_tcp_socket(listener_socket);
+    delete_listener_socket(listener_socket);
     return 0;
 }
