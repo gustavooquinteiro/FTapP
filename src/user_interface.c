@@ -32,14 +32,80 @@ struct applicationWindow
 
 static ApplicationWindow *app_window;
 
+// Trabalhando com threads
+typedef struct
+{
+    GtkWidget*    window;
+    guint         progress_id;
+    char*         name;
+    const char*         ip;
+    int           send_result;
+} WorkerData;
+
+static gboolean worker_finish_in_idle (gpointer data)
+{
+    WorkerData *wd = data;
+
+    /* we're done, stop updating the progress bar */
+    g_source_remove (wd->progress_id);
+    /* and destroy everything */
+    gtk_widget_destroy (wd->window);
+    g_free (wd);
+
+    display_send_result_dialog(wd->send_result);
+
+    return FALSE; /* stop running */
+}
+
+static gpointer worker (gpointer data)
+{
+    // Fonte do código fonte:
+    // https://gist.github.com/b4n/3486813
+    WorkerData *wd = data;
+
+    /* hard work here */
+    wd->send_result = send_file(wd->name, wd->ip);
+
+    /* we finished working, do something back in the main thread */
+    g_idle_add (worker_finish_in_idle, wd);
+
+    return NULL;
+}
+
+static gboolean update_progress_in_timeout (gpointer pbar)
+{
+    gtk_progress_bar_pulse (pbar);  
+    return TRUE; /* keep running */
+}
 
 static void send(GtkWidget *widget, gpointer data)
 {
+    // Fonte do código fonte:
+    // https://gist.github.com/b4n/3486813
+    WorkerData *wd;
+    GThread    *thread;
+    GtkWidget  *pbar;
+
+    wd = g_malloc (sizeof *wd);
+    wd->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    pbar = gtk_progress_bar_new ();
+    gtk_container_add (GTK_CONTAINER (wd->window), pbar);
+    gtk_widget_show_all (wd->window);  
+    /* add a timeout that will update the progress bar every 100ms */
+    wd->progress_id = g_timeout_add (100, update_progress_in_timeout, pbar);
+
+
+    // Pega as informacoes
     char** name = data;
     GtkEntry * entry = GTK_ENTRY(app_window->ip_addr_textbox);
     const char* ip = gtk_entry_get_text(entry);
-    display_send_result_dialog(send_file(name[0], ip));
-    printf("\n");
+
+    wd->name = name[0];
+    wd->ip = ip;
+
+
+    thread = g_thread_new ("Worker", worker, wd);
+    g_thread_unref (thread);
 }
 
 static void display_send_result_dialog(int send_result)

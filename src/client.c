@@ -40,7 +40,7 @@ uint64_t get_filesize(FILE* file);
 
 int ip_is_valid(const char* ip);
 
-void * create_data_connection(Data args)
+int create_data_connection(Data args)
 {
     int returned_value;
     tcp_socket * socket = args.socket;
@@ -63,25 +63,9 @@ void * create_data_connection(Data args)
             fclose(myfile);
             print_time();
             perror("Error(Send file)");
-            return (void *)SEND_FILE_ERROR;
+            return SEND_FILE_ERROR;
         }      
-        rest -= bytes_sent;        
-
-       // double total_sent = (filesize-rest);
-        //double total = filesize;
-        //double percent = (total_sent/total) * 100;
-
-        //clock_t now = clock();
-        //double nowf = now;
-        //double startf = start;
-        // printf("nowf = %lf, startf = %lf asdsdsadad\n", nowf, startf);
-        //double clocksps = CLOCKS_PER_SEC;
-        //double time_spent = (now - start)/ clocksps;
-        // printf("time_spent = %lf\n", time_spent);
-        //double KBps = (total_sent / time_spent)/100000;
-
-       // printf("\rEnviados %lu / %lu  (%.2lf%%)  | Vel. Media: %.2lf KB/s", filesize-rest, filesize, percent, KBps);
-       // fflush(stdout);
+        rest -= bytes_sent;
     }  
     printf("\n");
     fclose(myfile);
@@ -95,16 +79,16 @@ void * create_data_connection(Data args)
     if(returned_value == -1 || returned_value == 0){
         delete_tcp_socket(socket);
         perror("Warning(Server confirm)");
-        return (void *)SERVER_CONFIRM_ERROR;
+        return SERVER_CONFIRM_ERROR;
     }
     server_msg[returned_value] = '\0';    
 
     delete_tcp_socket(socket);
     printf("Server confirmation received: %s\n", server_msg);
-    return (void *)SUCCESS;
+    return SUCCESS;
 }
     
-void * create_control_connection(Data args)
+int create_control_connection(Data args)
 {
     int returned_value;
     tcp_socket* socket = args.socket;
@@ -115,7 +99,7 @@ void * create_control_connection(Data args)
     if(socket == NULL){
         fclose(myfile);
         perror("Error(Socket creation)");
-        return (void *)CONN_SOCKET_CREATION_ERROR;
+        return CONN_SOCKET_CREATION_ERROR;
     }
     printf("Success: Socket creation.\n");
 
@@ -126,7 +110,7 @@ void * create_control_connection(Data args)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Request)");
-        return (void *) REQUEST_ERROR;
+        return REQUEST_ERROR;
     }
     printf("Success: Request sent.\n");
 
@@ -138,7 +122,7 @@ void * create_control_connection(Data args)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Response)");
-        return (void *) RESPONSE_ERROR;
+        return RESPONSE_ERROR;
     }
     printf("Success: Response received.\n");
 
@@ -156,10 +140,10 @@ void * create_control_connection(Data args)
         delete_tcp_socket(socket);
         fclose(myfile);
         perror("Error(Send info)");
-        return (void *) SEND_INFO_ERROR;
+        return SEND_INFO_ERROR;
     }
     printf("Success: Info sent.\n"); 
-    return (void *) SUCCESS;
+    return SUCCESS;
 }
 
 int send_file(char* file_name, const char* ip_address)
@@ -187,9 +171,11 @@ int send_file(char* file_name, const char* ip_address)
     data.socket = connection_socket;
     data.file = myfile;
     
-    create_control_connection(data);
-    create_data_connection(data);
-
+    int result = create_control_connection(data);
+    if(result == SUCCESS){
+        return create_data_connection(data);
+    }
+    return result;
 }
 
 
