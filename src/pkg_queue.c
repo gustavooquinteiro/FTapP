@@ -57,4 +57,8 @@ int pkg_queue_isempty(PackageQueue* q){
 	return (q->front == NULL);
 }
 
+void clear_queue(PackageQueue * queue){
+    if (queue)
+        free(queue);
+}
 
