@@ -19,7 +19,7 @@ PackageQueue* new_pkg_queue(){
 	PackageQueue* new = (PackageQueue*) malloc(sizeof(PackageQueue));
 	new->back = NULL;
 	new->front = NULL;
-	new->size = 0;
+    return new;
 }
 
 void pkg_queue_push(PackageQueue* q, Package* pkg){
@@ -35,7 +35,6 @@ void pkg_queue_push(PackageQueue* q, Package* pkg){
 	inserted->next = q->back;
 	inserted->prev = NULL;
 	q->back = inserted;
-
 }
 
 Package* pkg_queue_pop(PackageQueue* q){
