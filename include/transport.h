@@ -1,10 +1,10 @@
 #ifndef _TRANSPORT_H
 #define _TRANSPORT_H
 
-typedef struct listener_socket ListenerSocket;
-typedef struct connection_socket ConnectionSocket;
-
 // //
+
+int transport_init();
+
 ListenerSocket* new_listener_socket(int port);
 ConnectionSocket* new_connection_socket(ListenerSocket*);
 ConnectionSocket* new_requester_socket(int port, const char* ip);

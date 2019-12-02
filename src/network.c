@@ -14,10 +14,10 @@
 typedef struct sockaddr_in SockAddrIn;
 typedef struct sockaddr SockAddr;
 
-#define CREATION_FAIL "Socket creation failed"
-#define BIND_FAIL "Socket bind failed"
-#define RECV_FAIL "Socket recieve failed"
-#define SEND_FAIL "Socket send failed"
+#define CREATION_FAIL   "Socket creation failed"
+#define BIND_FAIL       "Socket bind failed"
+#define RECV_FAIL       "Socket recieve failed"
+#define SEND_FAIL       "Socket send failed"
 
 
 int send_segment(char* buffer, int buffsize, char* IP){
@@ -43,7 +43,7 @@ int send_segment(char* buffer, int buffsize, char* IP){
     }
   	
   	// Fecha o socket
-    close(sockfd); 
+    close(sockfd);
     
     return TRUE; 
 }
