@@ -1,6 +1,9 @@
 #ifndef _TRANSPORT_H
 #define _TRANSPORT_H
 
+typedef struct connection_socket ConnectionSocket;
+typedef struct listener_socket ListenerSocket;
+typedef struct package Package;
 // //
 
 int transport_init();
