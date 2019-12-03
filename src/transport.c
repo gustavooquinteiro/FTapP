@@ -2,7 +2,6 @@
 #include "../include/network.h"
 #include "../include/requisition_queue.h"
 #include "../include/pkg_queue.h"
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -11,8 +10,8 @@
 #include <signal.h>
 #include <unistd.h>
 
-#define PKG_SIZE    25
-#define DATA_SIZE   14
+#define PKG_SIZE    26
+#define DATA_SIZE   15
 #define MAX_PORT    65535
 #define MAX_SOCKETS 100
 #define LISTENER_ID 100
@@ -38,6 +37,7 @@ typedef struct connection_socket{
     PackageQueue*  pkg_queue;
     PackageQueue*  ack_queue;
     uint8_t sending;
+    uint8_t receiving;
     pthread_mutex_t queue_lock;
 } ConnectionSocket;
 
@@ -69,6 +69,65 @@ typedef struct package{
     uint8_t     data[DATA_SIZE];
 } Package;
 
+// Verifica se um segmento está corrompido
+int is_corrupted(Package* pkg){
+    uint32_t aux;
+    uint16_t sum = 0;
+
+    uint8_t* data;
+    data = (uint8_t*) pkg;
+
+    for (int i = 0; i < PKG_SIZE ; i+=2)
+    {
+        uint16_t operand = data[i];
+        operand = operand << 8;
+        operand |= data[i+1];
+        aux = (uint32_t)sum + (uint32_t)operand;
+        if(aux >> 16 == 1){
+            aux += 1;
+        }
+        sum = aux;
+    }
+
+    if(sum == 0xffff) return FALSE;
+    else return TRUE;
+}
+
+void make_checksum(Package* pkg){
+    pkg->checksum = 0;
+    
+    uint32_t aux;
+    uint16_t sum = 0;    
+    uint8_t* data;
+    data = (uint8_t*) pkg;
+    
+    for(int i = 0; i < PKG_SIZE; i+=2){
+        uint16_t operand = data[i];
+        operand = operand << 8;
+        operand |= data[i+1];
+        aux = (uint32_t)sum + (uint32_t)operand;
+        if(aux >> 16 ==1){
+            aux += 1;
+        }
+        sum = aux;
+    }
+    
+    pkg->checksum = ~sum;
+}
+
+int fin_flag(Package* pkg){
+    return (pkg->flags & 0b00000001);
+}
+int syn_flag(Package* pkg){
+    return (pkg->flags & 0b00000010);
+}
+int ack_flag(Package* pkg){
+    return (pkg->flags & 0b00000100);
+}
+void set_ack_flag(Package* pkg){
+    pkg->flags |= 0b00000100;
+}
+
 // Thread que a camada de transporte vai estar sempre executando
 void* listen_network_layer(void* data){
     int nada;   
@@ -92,7 +151,7 @@ void* listen_network_layer(void* data){
                 strcmp(sockets[i]->remote_IP, remoteIP) == 0)
             {
                 pthread_mutex_lock(&sockets[i]->queue_lock);
-                if(pkg->ack_flag()){
+                if(ack_flag(pkg)){
                     pkg_queue_push(sockets[i]->ack_queue, pkg);
                 }else{
                     pkg_queue_push(sockets[i]->pkg_queue, pkg);
@@ -126,40 +185,6 @@ int transport_init(){
     pthread_create(&trans_thread, NULL, listen_network_layer, NULL);
 
     return 1;
-}
-
-// Verifica se um segmento está corrompido
-int is_corrupted(Package* pkg){
-    uint32_t aux;
-    uint16_t sum = 0;
-
-    uint8_t* data;
-    data = (uint8_t*) pkg;
-
-    for (int i = 1; i <= 13; i+=2)
-    {
-        uint16_t operand = pkg->data[i];
-        operand = operand << 8;
-        operand |= pkg->data[i+1];
-        aux = (uint32_t)sum + (uint32_t)operand;
-        if(aux >> 16 == 1){
-            aux += 1;
-        }
-        sum = aux;
-    }
-
-    if(sum == 0xffff) return FALSE;
-    else return TRUE;
-}
-
-int fin_flag(Package* pkg){
-    return (pkg->flags & 0b00000001);
-}
-int syn_flag(Package* pkg){
-    return (pkg->flags & 0b00000010);
-}
-int ack_flag(Package* pkg){
-    return (pkg->flags & 0b00000100);
 }
 
 // Thread que o socket listener, caso exista, vai estar sempre executando
@@ -281,6 +306,8 @@ int new_connection_socket(int listener_id){
             sockets[i] = ALLOC(ConnectionSocket);
             sockets[i]->local_port = requisition->dest_port;
             sockets[i]->remote_port = requisition->orig_port;
+            sockets[i]->sending = FALSE;
+            sockets[i]->receiving = FALSE;
             strcpy(sockets[i]->remote_IP, ip);
             sockets[i]->pkg_queue = new_pkg_queue();
             if (pthread_mutex_init(&sockets[i]->queue_lock, NULL) != 0)
@@ -335,6 +362,8 @@ int new_requester_socket(uint16_t port, const char* ip){
     sockets[index] = ALLOC(ConnectionSocket);
     sockets[index]->local_port = local_port;
     sockets[index]->remote_port = port;
+    sockets[index]->sending = FALSE;
+    sockets[index]->receiving = FALSE;
     strcpy(sockets[index]->remote_IP, ip);
     sockets[index]->pkg_queue = new_pkg_queue();
     if (pthread_mutex_init(&sockets[index]->queue_lock, NULL) != 0)
@@ -346,18 +375,26 @@ int new_requester_socket(uint16_t port, const char* ip){
     return index;    
 }
 
-int get_peer_ip(ConnectionSocket* socket, char* ip){
+int get_peer_ip(int socket_id, char* ip){
+    ConnectionSocket* socket = sockets[socket_id];
     strcpy(ip, socket->remote_IP);
     return 1;
 }
 
 // Depende da criação (new)
-void delete_listener_socket(ListenerSocket* listener){
-    if(listener == NULL){
-        perror(NULL_ERROR);
-        return;
+int delete_listener_socket(int listener_id){
+    // Erro se o id passado não for o id especial de listener,
+    if(listener_id != LISTENER_ID){
+        perror(ID_LISTENER_ERROR);
+        return FALSE;
     }
-
+    // Erro se o listener não estiver criado
+    if(listener_socket == NULL){
+        perror(NULL_ERROR);
+        return FALSE;
+    }
+    ListenerSocket* listener = listener_socket;
+    
     if(pthread_cancel(listener->thread) != 0){
         perror(THREAD_CANCEL_ERROR);
     } 
@@ -369,16 +406,21 @@ void delete_listener_socket(ListenerSocket* listener){
     clear_queue(listener->pkg_queue);
     clear_queue(listener->req_pkg_queue);
     free(listener);
+    
+    return TRUE;
 }
 
-void delete_connection_socket(ConnectionSocket* socket){
-    if(socket == NULL){
+int delete_connection_socket(int socket_id){
+    ConnectionSocket* socket = sockets[socket_id];
+    if(socket== NULL){
         perror(NULL_ERROR);
-        return;
+        return FALSE;
     }
     clear_queue(socket->pkg_queue);
     pthread_mutex_destroy(&socket->queue_lock);
     free(socket);
+    
+    return TRUE;
 }
 
 // FUNÇÕES PENDENTES
@@ -440,13 +482,17 @@ void * snd_receiver(void * args){
 }
 
 
-int send_message(ConnectionSocket* socket, char* snd_data, int length){
+int send_message(int socket_id, char* snd_data, int length){
+    ConnectionSocket* socket = sockets[socket_id];
     if (socket->sending){
         return -1;
     }
     socket->sending = TRUE;
+    
     pthread_t snd_receiver_thread;
     pthread_create(&snd_receiver_thread, NULL, snd_receiver, (void *)socket);
+    
+    int iterator = 0;
     while(iterator < length){
         
         if (next_seq_number < base + WINDOW_SIZE){            
@@ -457,11 +503,11 @@ int send_message(ConnectionSocket* socket, char* snd_data, int length){
             pkg->dest_port = socket->remote_port;
             pkg->flags = 0x00;
             strncpy(pkg->data, snd_data + iterator, DATA_SIZE);
-            pkg->checksum = make_checksum(pkg);
+            make_checksum(pkg);
             
             // Envia pacote
             window[next_seq_number-base] = pkg;
-            send_segment((char*) pkg, sizeof(pkg), socket->remoteIP);
+            send_segment((char*) pkg, sizeof(pkg), socket->remote_IP);
             if (base == next_seq_number){
                 start_timer();
             }            
@@ -472,7 +518,7 @@ int send_message(ConnectionSocket* socket, char* snd_data, int length){
             start_timer();
             // Manda todo mundo de novo
             for(int i = 0; i < (next_seq_number-base); i++){
-                send_segment((char*) window[i], sizeof(window[i]), socket->remoteIP);
+                send_segment((char*) window[i], sizeof(window[i]), socket->remote_IP);
             }
         }
 
@@ -481,18 +527,25 @@ int send_message(ConnectionSocket* socket, char* snd_data, int length){
     if(DATA_SIZE - (iterator-length) != 0){
         // Envia o restinho
     }
-    if(pthread_cancel(snd_receiver_thread != 0){
+    if(pthread_cancel(snd_receiver_thread != 0)){
         perror(THREAD_CANCEL_ERROR);
     } 
     pthread_join(snd_receiver_thread, NULL);
     
+    socket->sending = FALSE;    
     return 1;
 }
 
 
 // Funções do destinatário
 
-int receive_message(ConnectionSocket* socket, char* rcv_data, int length){
+int receive_message(int socket_id, char* rcv_data, int length){
+    ConnectionSocket* socket = sockets[socket_id];
+    if(socket->receiving){
+        return -1;
+    }
+    socket->receiving = TRUE;
+    
     int expected_seq_number = 0;
     int iterator = 0;
     
@@ -500,9 +553,9 @@ int receive_message(ConnectionSocket* socket, char* rcv_data, int length){
         // Espera ter pelo menos um pacote na fila de acks
         while(pkg_queue_isempty(socket->pkg_queue));        
         // Pega esse pacote
-        pthread_mutex_lock(socket->queue_lock);
+        pthread_mutex_lock(&socket->queue_lock);
         Package * pkg = pkg_queue_pop(socket->pkg_queue);
-        pthread_mutex_unlock(socket->queue_lock);
+        pthread_mutex_unlock(&socket->queue_lock);
         if (!is_corrupted(pkg) && pkg->seq_number == expected_seq_number){
             strncpy(rcv_data + iterator, pkg->data, DATA_SIZE);
             Package  * ack = ALLOC(Package);
@@ -511,11 +564,12 @@ int receive_message(ConnectionSocket* socket, char* rcv_data, int length){
             set_ack_flag(ack);
             ack->orig_port = socket->local_port; 
             ack->dest_port = socket->remote_port;
-            ack->checksum = make_checksum(ack);
+            make_checksum(ack);
             send_segment ((char *)ack, sizeof(ack), socket->remote_IP);
             expected_seq_number += 1;
         }
     }
+    socket->receiving = FALSE;
     return 1;
     
 }
