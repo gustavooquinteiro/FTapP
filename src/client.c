@@ -13,7 +13,7 @@
 
 typedef struct thread_data
 {
-    ConnectionSocket * socket;
+    int socket;
     FILE* file;
 } Data;
 
@@ -43,7 +43,7 @@ int ip_is_valid(const char* ip);
 int create_data_connection(Data args)
 {
     int returned_value;
-    ConnectionSocket * socket = args.socket;
+    int socket = args.socket;
     FILE* myfile = args.file;
         
     // Envia arquivo em pacotes de pkg_size bytes
@@ -75,7 +75,7 @@ int create_data_connection(Data args)
     // Recebe mensagem de confirmação
     char server_msg[50];
     printf("Waiting confirmation...\n");
-    returned_value = receive_message(socket, server_msg, PKG_SIZE, 0);
+    returned_value = receive_message(socket, server_msg, PKG_SIZE);
     if(returned_value == -1 || returned_value == 0){
         delete_connection_socket(socket);
         perror("Warning(Server confirm)");
@@ -91,12 +91,12 @@ int create_data_connection(Data args)
 int create_control_connection(Data args)
 {
     int returned_value;
-    ConnectionSocket* socket = args.socket;
+    int socket = args.socket;
     FILE* myfile = args.file;
     
    // Cria socket de conexão
     printf("Creating socket...\n");
-    if(socket == NULL){
+    if(socket == -1){
         fclose(myfile);
         perror("Error(Socket creation)");
         return CONN_SOCKET_CREATION_ERROR;
@@ -117,7 +117,7 @@ int create_control_connection(Data args)
     // Recebe resposta do servidor (maximo de bytes no pacote)
     uint8_t max_pkg_bytes[4];
     printf("Waiting response...\n");
-    returned_value = receive_message(socket, max_pkg_bytes, 4, 0);
+    returned_value = receive_message(socket, max_pkg_bytes, 4);
     if( returned_value == -1 || returned_value == 0){
         delete_connection_socket(socket);
         fclose(myfile);
@@ -165,7 +165,7 @@ int send_file(char* file_name, const char* ip_address)
     printf("Success: Open file.\n");
     
 
-    ConnectionSocket* connection_socket = new_requester_socket(PORT, ip_address);
+    int connection_socket = new_requester_socket(PORT, ip_address);
 
     Data data;
     data.socket = connection_socket;

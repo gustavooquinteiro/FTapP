@@ -1,13 +1,14 @@
 #include "../include/pkg_queue.h"
+#include <stdlib.h>
 
-typedef struct package Package;
+typedef struct node node;
 
-typedef struct node
+struct node
 {
 	Package* pkg;
-	(struct node)* next;
-	(struct node)* prev;
-} node;
+	node* next;
+	node* prev;
+};
 
 struct pkg_queue{
 	node* 	back;
@@ -38,7 +39,7 @@ void pkg_queue_push(PackageQueue* q, Package* pkg){
 }
 
 Package* pkg_queue_pop(PackageQueue* q){
-	node removed = q->front;
+	node* removed = q->front;
 
 	if(removed->prev != NULL){
 		removed->prev->next = NULL;

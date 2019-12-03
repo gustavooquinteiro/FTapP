@@ -67,7 +67,8 @@ uint32_t MAX_PKG_SIZE = 4000000;
 void * receive_file(void * socket_connection)
 {
     int returned_value;
-    ConnectionSocket* conn_socket = (ConnectionSocket*) socket_connection;
+    int* aux = (int*) socket_connection;
+    int conn_socket = *aux;
     printf("hello from thread\n"); 
     char* hello = "Arquivo recebido com sucesso.";
     char control_buffer[CTRLBUFF_SIZE];
@@ -81,7 +82,7 @@ void * receive_file(void * socket_connection)
     }
 
     // Recebe o tamanho do arquivo e tamanho de cada pacote, determinado pelo cliente
-    returned_value = receive_message(conn_socket, control_buffer, CTRLBUFF_SIZE, 0);
+    returned_value = receive_message(conn_socket, control_buffer, CTRLBUFF_SIZE);
     if(returned_value == -1 || returned_value == 0){        
         perror(RECEIVE_INFO_ERROR);
         delete_connection_socket(conn_socket);
@@ -136,8 +137,7 @@ void * receive_file(void * socket_connection)
     print_time();
     printf("Receiving file...\n");
     while(rest > 0){
-        int flag = (rest < pkg_size) ? 0 : 1;
-        msgsize = receive_message(conn_socket, data_buffer, pkg_size, flag);
+        msgsize = receive_message(conn_socket, data_buffer, pkg_size);
 
         if(msgsize == -1 || msgsize == 0) {
             error = 1;
@@ -179,7 +179,7 @@ int main(int argc, char const *argv[])
 {
     int returned_value;
     int attempts = 0;
-    ListenerSocket* listener_socket = NULL;
+    int listener_socket = -1;
     
     if (pthread_mutex_init(&lock, NULL) != 0)
     {
@@ -187,24 +187,24 @@ int main(int argc, char const *argv[])
         return 1;
     }
     
-    while(listener_socket == NULL && attempts < 3){
+    while(listener_socket == -1 && attempts < 3){
         listener_socket = new_listener_socket(PORT);
         attempts++;
     }
-    if (listener_socket == NULL){
+    if (listener_socket == -1){
         perror(LISTENER_CREATION_ERROR);
         exit(EXIT_FAILURE);
     }
     
     while(TRUE){
         char control_buffer[CTRLBUFF_SIZE];
-        ConnectionSocket* conn_socket = new_connection_socket(listener_socket);
-        if (conn_socket == NULL){
+        int conn_socket = new_connection_socket(listener_socket);
+        if (conn_socket == -1){
             perror(CONN_CREATION_ERROR);
             continue;
         }
         
-        returned_value = receive_message(conn_socket, control_buffer, sizeof(control_buffer), 0);
+        returned_value = receive_message(conn_socket, control_buffer, sizeof(control_buffer));
         if(returned_value == -1 || returned_value == 0){        
             perror(REQUEST_ERROR);
             delete_connection_socket(conn_socket);
@@ -216,7 +216,7 @@ int main(int argc, char const *argv[])
         }
         
         pthread_t thread;
-        pthread_create(&thread, NULL, receive_file, (void*)conn_socket);
+        pthread_create(&thread, NULL, receive_file, (void*)&conn_socket);
         // printf("Criei a thread fodasse\n");
     }
 
