@@ -1,13 +1,7 @@
 # :earth_americas: FTapP
-![](https://img.shields.io/badge/platform-windows%20%7C%20linux-blue) ![](https://img.shields.io/badge/gtk-3.20-orange) ![](https://img.shields.io/cocoapods/l/AFNetworking)
+![Plataforma](https://img.shields.io/badge/platform-linux-blue) ![GTK version](https://img.shields.io/badge/gtk-3.20-orange) ![Licença](https://img.shields.io/cocoapods/l/AFNetworking) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/gustavooquinteiro/FTapP?color=green) ![Contribuidores](https://img.shields.io/github/contributors/gustavooquinteiro/FTapP?color=yellow) 
 
 Trabalho realizado para a disciplina MATA59 - Redes de Computadores, ministrada pelo professor Gustavo Bittencourt Figueiredo, do Departamento de Ciência da Computação do Instituto de Matemática e Estatistica da Universidade Federal da Bahia.
-
-> :warning: Ao contribuir com a aplicação fique atento para permanecer aos padrões desse repositório:
->   - Commits e comentários no código em português 
->   - Nomes de funções e de variáveis em inglês
->   - Nomes de constantes e macros em MAIÚSCULAS 
->   - Nomes de funções em `snake_case`
 
 ## :dart: Objetivo 
 
@@ -15,11 +9,16 @@ O trabalho visa criar uma aplicação de transferência de arquivos entre hosts 
 
 ## Panorama Geral
 
-O projeto será modularizado da seguinte forma: haverá um arquivo de código para aplicação do servidor, outro para a aplicação do cliente (estas duas funcionarão como código main), um outro para camada de transporte, e mais um para camada de rede. 
+O projeto está modularizado da seguinte forma: há um arquivo de código para a aplicação do [servidor](src/server.c), outro para a aplicação do [cliente](src/client.c), ambos funcionando como código principal e executarão suas respectivas funcionalidades. 
 
-Cada um deles será implementado de forma independente, evitando acoplamento, assim se aproximando de uma implementação real da pilha de camadas TCP/IP.
+Agregando as funcionalidades das camadas do modelo TCP/IP, será modularizado, em arquivos diferentes, as demais camadas. Ou seja, cada uma das camadas do TCP/IP é implementada de forma independente, evitando acoplamento, assim se aproximando de uma implementação real.
 
-A aplicação do cliente contará com uma interface gráfica simples, em GTK, que é um toolkit multi plataforma para a criação de interfaces gráficas, liberado sob a licença GNU LGPL, onde terá um campo onde será inserido o endereço IP da máquina destinatária, além de um campo para escolher um arquivo a ser enviado. Além de um botão para realizar o envio do arquivo.
+A aplicação do cliente contém uma interface gráfica simples, em [GTK](https://www.gtk.org), que é um toolkit multi plataforma para a criação de interfaces gráficas, onde tem um campo onde será inserido o endereço IP da máquina destinatária, além de um campo para escolher um arquivo a ser enviado. Além de um botão para realizar o envio do arquivo.
+
+![Screenshot1](assets/application-screenshot.jpg)  
+```
+Screenshot da aplicação do cliente em GTK. O tema da aplicação é o tema padrão do computador 
+```
 
 ### :desktop_computer: Camada de Aplicação
 > :warning: :timer_clock: Na segunda etapa do trabalho, deverá ser entregue a aplicação rodando e um relatório parcial da camada de aplicação.
@@ -55,4 +54,46 @@ Existem duas funções para enviar e receber segmentos, _send_segment_ e _recv_s
 ### Camada Física
 
 A camada física será simulada através de sockets, utilizando a biblioteca em C *<sys/socket.h>* com datagramas, pois esse método não garante a confiabilidade dos dados, assim como a camada física real.
+
+## Requisitos 
+
+É necessário o download da biblioteca GTK, fornecido nesse [link](http://ftp.gnome.org/pub/gnome/sources/gtk+/3.20/gtk+-3.20.0.tar.xz), para a correta execução do programa ```Client```.  
+No diretório onde foi baixado, rode o comando: 
+
+```sh
+tar xvfJ gtk+-3.2.0.tar.xz
+```
+Entre o diretório criado, e instale o pacote em /opt/gtk usando o comando: 
+
+```sh
+./configure --prefix=/opt/gtk
+make && make install
+```
+Defina o variável de ambiente ```LD_LIBRARY_PATH``` para que o linker dinâmico do sistema possa achar a biblioteca recém instalada, e a variável ```PATH``` para que binários instalados pelas várias bibliotecas sejam encontrados. 
+
+```sh
+  LD_LIBRARY_PATH="/opt/gtk/lib"
+  PATH="/opt/gtk/bin:$PATH"
+  export LD_LIBRARY_PATH PATH
+```
+
+## Compilação do código
+
+Para compilar todos os arquivos necessários à execução dos programas ```Client``` e ```Server``` é fornecido um **Makefile**, tal que somente é necessário digitar o comando: 
+```sh
+make all
+```
+
+## Execução do código
+
+Para rodar o servidor, insira o comando a seguir, em um terminal:
+```sh
+./Server
+```
+
+Para rodar o cliente, insira o comando a seguir, em outro terminal:
+```sh
+./Client
+```
+
 
