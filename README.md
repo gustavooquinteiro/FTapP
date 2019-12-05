@@ -50,7 +50,7 @@ Caso seja um recebimento, checa-se se o pacote não está corrompido - fazendo a
 
 ###  :satellite: Camada de Rede
 
-Existem duas funções para enviar e receber segmentos, _send_segment_ e _recv_segment_, respectivamente. Usando a biblioteca `sys/socket.h`, é criado um socket datagrama o qual tem o endereço (porta e IP) passados como parâmetro e que utiliza funções da própria biblioteca para enviar e receber pacotes para/da camada de baixo.
+Existem duas funções para enviar e receber segmentos, _send_segment_ e _recv_segment_, respectivamente. Usando a biblioteca _<sys/socket.h>_, é criado um socket datagrama o qual tem o endereço (porta e IP) passados como parâmetro e que utiliza funções da própria biblioteca para enviar e receber pacotes para/da camada de baixo.
 
 ### Camada Física
 
