@@ -75,7 +75,7 @@ int create_data_connection(Data args)
     // Recebe mensagem de confirmação
     char server_msg[50];
     printf("Waiting confirmation...\n");
-    returned_value = receive_message(socket, server_msg, PKG_SIZE);
+    returned_value = receive_message(socket, server_msg, 30);
     if(returned_value == -1 || returned_value == 0){
         delete_connection_socket(socket);
         perror("Warning(Server confirm)");
@@ -94,7 +94,7 @@ int create_control_connection(Data args)
     int socket = args.socket;
     FILE* myfile = args.file;
     
-   // Cria socket de conexão
+    // Cria socket de conexão
     printf("Creating socket...\n");
     if(socket == -1){
         fclose(myfile);

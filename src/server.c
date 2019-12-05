@@ -75,7 +75,14 @@ void * receive_file(void * socket_connection)
     // Envia o maximo de bytes num pacote
     uint8_t max_pkg_bytes[4];
     toBytes32(max_pkg_bytes, MAX_PKG_SIZE);
-    if(send_message(conn_socket, max_pkg_bytes, sizeof(uint32_t)) == -1){
+    printf("--------------------------------------\n");
+    for (int i = 0; i < 4; ++i)
+    {
+        printf("0x%x ", max_pkg_bytes[i]);
+    }
+    printf("\n");
+    printf("--------------------------------------\n");
+    if(send_message(conn_socket, max_pkg_bytes, 4) == -1){
         perror(RESPONSE_ERROR);
         delete_connection_socket(conn_socket);
         pthread_exit(NULL);
@@ -137,7 +144,8 @@ void * receive_file(void * socket_connection)
     print_time();
     printf("Receiving file...\n");
     while(rest > 0){
-        msgsize = receive_message(conn_socket, data_buffer, pkg_size);
+        int howMuchReceive = (rest < pkg_size) ? rest : pkg_size;
+        msgsize = receive_message(conn_socket, data_buffer, howMuchReceive);
 
         if(msgsize == -1 || msgsize == 0) {
             error = 1;
@@ -163,7 +171,7 @@ void * receive_file(void * socket_connection)
     printf("Success: File received.\n");
             
     // Envia resposta
-    if(send_message(conn_socket, hello, 29) == -1){
+    if(send_message(conn_socket, hello, 30) == -1){
         delete_connection_socket(conn_socket);
         perror(SERVER_CONFIRM_ERROR);
         pthread_exit(NULL);
@@ -187,6 +195,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
     
+    transport_init(SERVER);
     while(listener_socket == -1 && attempts < 3){
         listener_socket = new_listener_socket(PORT);
         attempts++;
@@ -197,20 +206,21 @@ int main(int argc, char const *argv[])
     }
     
     while(TRUE){
-        char control_buffer[CTRLBUFF_SIZE];
         int conn_socket = new_connection_socket(listener_socket);
         if (conn_socket == -1){
             perror(CONN_CREATION_ERROR);
             continue;
         }
         
-        returned_value = receive_message(conn_socket, control_buffer, sizeof(control_buffer));
+        char connect_buffer[1];
+        returned_value = receive_message(conn_socket, connect_buffer, 1);
         if(returned_value == -1 || returned_value == 0){        
             perror(REQUEST_ERROR);
             delete_connection_socket(conn_socket);
             continue;
         }
-        if(control_buffer[0] != 'A'){
+        if(connect_buffer[0] != 'A'){
+            printf("É diferente de 'A'\n");
             delete_connection_socket(conn_socket);
             continue;
         }

@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define CLIENT 1
+#define SERVER 0
+
 typedef struct connection_socket ConnectionSocket;
 typedef struct listener_socket ListenerSocket;
 typedef struct package Package;

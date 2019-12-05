@@ -1,0 +1,1322 @@
+Success: Valid IP.
+Arquivo: arquivo
+Success: Open file.
+NEW_REQUESTER: Pediu para criar socket.
+TRANSPORT: Começou a ouvir.
+NEW_REQUESTER: Criou o socket
+NEW_REQUESTER: Socket LocalPort = 8328
+NEW_REQUESTER: Socket RemotePort = 8074
+NEW_REQUESTER: Socket IP = 127.0.0.1
+NEW_REQUESTER: Achou número de porta 8328 disponível.
+NEW_REQUESTER: Tentativa 1: Enviou a requisição para 127.0.0.1.
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+NEW_REQUESTER: Recebeu o SYNACK.
+NEW_REQUESTER: Sending = TRUE.
+Creating socket...
+Success: Socket creation.
+Sending request...
+SEND_MESSAGE: Sending = TRUE
+SEND_MESSAGE: length = 1
+SEND_MESSAGE: initialseqnumber = 2
+SEND_MESSAGE: Enviar 1 pacotes
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = A 
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 1
+SENDER_THREAD: Nextseqnum = 1
+SENDER_THREAD: Cria pacote com nextseqnum = 1
+============
+SENDER_THREAD: |SeqNumber = 1 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+SENDER_THREAD: Base = nextseqnum = 1.
+SENDER_THREAD: Reiniciou timer.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 1
+SENDER_THREAD: Nextseqnum = 2
+SENDER_THREAD: Cria pacote com nextseqnum = 2
+============
+SENDER_THREAD: |SeqNumber = 2 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = A 0x0 0x0 0x0 0x0 0x0 0x0 ` i ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 1:
+============
+SENDER_THREAD: |SeqNumber = 1 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 1 a 1.
+SENDER_THREAD: Base = 2
+SENDER_THREAD: Base = 2 != 3 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 2:
+============
+SENDER_THREAD: |SeqNumber = 2 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = A 0x0 0x0 0x0 0x0 0x0 0x0 ` i ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 2:
+============
+SENDER_THREAD: |SeqNumber = 2 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 2 a 2.
+SENDER_THREAD: Base = 3
+SENDER_THREAD: Base = 3 = nextseqnum => Pára o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+SEND_MESSAGE: Sending = FALSE
+Success: Request sent.
+Waiting response...
+RECEIVE_MESSAGE: Receiving = TRUE
+RECEIVE_MESSAGE: initial_expected = 2
+RECEIVE_MESSAGE: pkg_amount = 1
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+RECEIVER_THREAD: Tem dados pra receber.
+RECEIVER_THREAD: Tira da fila.
+RECEIVER_THREAD: Numero de sequencia é o esperado:
+============
+RECEIVER_THREAD: |SeqNumber = 2 |
+RECEIVER_THREAD: |OrigPort = 8074 |
+RECEIVER_THREAD: |DestPort = 8328 |
+RECEIVER_THREAD: |Flags = 0x0 |
+RECEIVER_THREAD: |Data = 0x0 = 0x9 0x0 0x0 0x0 0x0 0xf0 0x9e 0xc2 0x1c 0x17 0x7f 0x0 0x0 |
+============
+RECEIVER_THREAD: Passa para a camada superior.
+--------------------------------------------
+--------------------------------------------
+RECEIVER_THREAD: Criou o ACK:.
+============
+RECEIVER_THREAD: |SeqNumber = 2 |
+RECEIVER_THREAD: |OrigPort = 8328 |
+RECEIVER_THREAD: |DestPort = 8074 |
+RECEIVER_THREAD: |Flags = 0x4 |
+RECEIVER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+RECEIVER_THREAD: Enviou o ack.
+--------------------------------------------
+RECEIVE_MESSAGE: Depois: expectedseqnum = 3
+RECEIVE_MESSAGE: Receiving = FALSE
+Success: Response received.
+Sending file info...
+SEND_MESSAGE: Sending = TRUE
+SEND_MESSAGE: length = 12
+SEND_MESSAGE: initialseqnumber = 3
+SEND_MESSAGE: Enviar 1 pacotes
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 d 0x0 0xf B @ 
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 3
+SENDER_THREAD: Nextseqnum = 3
+SENDER_THREAD: Cria pacote com nextseqnum = 3
+============
+SENDER_THREAD: |SeqNumber = 3 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 d 0x0 0xf B @ 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+SENDER_THREAD: Base = nextseqnum = 3.
+SENDER_THREAD: Reiniciou timer.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 3:
+============
+SENDER_THREAD: |SeqNumber = 3 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 d 0x0 0xf B @ 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 3:
+============
+SENDER_THREAD: |SeqNumber = 3 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 3 a 3.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Base = 4 = nextseqnum => Pára o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+SEND_MESSAGE: Sending = FALSE
+Success: Info sent.
+[2019-12-05 09:37:46.000] Sending file...
+SEND_MESSAGE: Sending = TRUE
+SEND_MESSAGE: length = 100
+SEND_MESSAGE: initialseqnumber = 4
+SEND_MESSAGE: Enviar 7 pacotes
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = # i n c l u d e [SPC] " . . / i n 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = --------------------------------------------
+
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 4
+
+SENDER_THREAD: Cria pacote com nextseqnum = 4
+============
+SEND_MESSAGE: Coloca na fila de envio
+SENDER_THREAD: |SeqNumber = 4 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SEND_MESSAGE: Data = SENDER_THREAD: |Data = 
+SEND_MESSAGE: Coloca na fila de envio
+# SEND_MESSAGE: Data = i n c l u d e d e [SPC] [SPC] " . . / i n c " . . 
+/ i n |
+============
+SENDER_THREAD: Enviou segmento.
+SENDER_THREAD: Base = nextseqnum = 4.
+SENDER_THREAD: Reiniciou timer.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 5
+SENDER_THREAD: Cria pacote com nextseqnum = 5
+============
+SENDER_THREAD: |SeqNumber = 5 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = c l u d e / u s e r _ i n t e |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 6
+SENDER_THREAD: Cria pacote com nextseqnum = 6
+============
+SENDER_THREAD: |SeqNumber = 6 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 7
+SENDER_THREAD: Cria pacote com nextseqnum = 7
+============
+SENDER_THREAD: |SeqNumber = 7 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 8
+SENDER_THREAD: Cria pacote com nextseqnum = 8
+============
+SENDER_THREAD: |SeqNumber = 8 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 9
+SENDER_THREAD: Cria pacote com nextseqnum = 9
+============
+SENDER_THREAD: |SeqNumber = 9 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 4
+SENDER_THREAD: Nextseqnum = 10
+SENDER_THREAD: Cria pacote com nextseqnum = 10
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n c 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 4:
+============
+SENDER_THREAD: |SeqNumber = 4 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 4 a 4.
+SENDER_THREAD: Base = 5
+SENDER_THREAD: Base = 5 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 5:
+============
+SENDER_THREAD: |SeqNumber = 5 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 5 a 5.
+SENDER_THREAD: Base = 6
+SENDER_THREAD: Base = 6 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 6:
+============
+SENDER_THREAD: |SeqNumber = 6 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 7:
+============
+SENDER_THREAD: |SeqNumber = 7 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 8:
+============
+SENDER_THREAD: |SeqNumber = 8 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 9:
+============
+SENDER_THREAD: |SeqNumber = 9 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 10:
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n c 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 6:
+============
+SENDER_THREAD: |SeqNumber = 6 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 6 a 6.
+SENDER_THREAD: Base = 7
+SENDER_THREAD: Base = 7 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 7:
+============
+SENDER_THREAD: |SeqNumber = 7 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 8:
+============
+SENDER_THREAD: |SeqNumber = 8 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 9:
+============
+SENDER_THREAD: |SeqNumber = 9 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 10:
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n c 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 7:
+============
+SENDER_THREAD: |SeqNumber = 7 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 7 a 7.
+SENDER_THREAD: Base = 8
+SENDER_THREAD: Base = 8 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 8:
+============
+SENDER_THREAD: |SeqNumber = 8 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 8 a 8.
+SENDER_THREAD: Base = 9
+SENDER_THREAD: Base = 9 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 9:
+============
+SENDER_THREAD: |SeqNumber = 9 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 10:
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n c 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 9:
+============
+SENDER_THREAD: |SeqNumber = 9 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 9 a 9.
+SENDER_THREAD: Base = 10
+SENDER_THREAD: Base = 10 != 11 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 10:
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n c 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 10:
+============
+SENDER_THREAD: |SeqNumber = 10 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 10 a 10.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Base = 11 = nextseqnum => Pára o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+SEND_MESSAGE: Sending = FALSE
+SEND_MESSAGE: Sending = TRUE
+SEND_MESSAGE: length = 99
+SEND_MESSAGE: initialseqnumber = 11
+SEND_MESSAGE: Enviar 7 pacotes
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = # i n c l u d e [SPC] " . . / i n 
+SEND_MESSAGE: Coloca na fila de envio
+--------------------------------------------
+SEND_MESSAGE: Data = SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 11
+
+SENDER_THREAD: Cria pacote com nextseqnum = 11
+SEND_MESSAGE: Coloca na fila de envio
+============
+SENDER_THREAD: |SeqNumber = 11 |
+SEND_MESSAGE: Data = SENDER_THREAD: |OrigPort = 8328 |
+
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = SEND_MESSAGE: Coloca na fila de envio
+# SEND_MESSAGE: Data = 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = i d e [SPC] " . n . c / i n 
+l u d e [SPC] " . . / i n |
+============
+SENDER_THREAD: Enviou segmento.
+SENDER_THREAD: Base = nextseqnum = 11.
+SENDER_THREAD: Reiniciou timer.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 12
+SENDER_THREAD: Cria pacote com nextseqnum = 12
+============
+SENDER_THREAD: |SeqNumber = 12 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = c l u d e / u s e r _ i n t e |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 13
+SENDER_THREAD: Cria pacote com nextseqnum = 13
+============
+SENDER_THREAD: |SeqNumber = 13 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 14
+SENDER_THREAD: Cria pacote com nextseqnum = 14
+============
+SENDER_THREAD: |SeqNumber = 14 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 15
+SENDER_THREAD: Cria pacote com nextseqnum = 15
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 16
+SENDER_THREAD: Cria pacote com nextseqnum = 16
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 11
+SENDER_THREAD: Nextseqnum = 17
+SENDER_THREAD: Cria pacote com nextseqnum = 17
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 11:
+============
+SENDER_THREAD: |SeqNumber = 11 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 11 a 11.
+SENDER_THREAD: Base = 12
+SENDER_THREAD: Base = 12 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 12:
+============
+SENDER_THREAD: |SeqNumber = 12 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = c l u d e / u s e r _ i n t e |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 13:
+============
+SENDER_THREAD: |SeqNumber = 13 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 14:
+============
+SENDER_THREAD: |SeqNumber = 14 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 15:
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 12:
+============
+SENDER_THREAD: |SeqNumber = 12 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 12 a 12.
+SENDER_THREAD: Base = 13
+SENDER_THREAD: Base = 13 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 13:
+============
+SENDER_THREAD: |SeqNumber = 13 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 14:
+============
+SENDER_THREAD: |SeqNumber = 14 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 15:
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 13:
+============
+SENDER_THREAD: |SeqNumber = 13 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 13 a 13.
+SENDER_THREAD: Base = 14
+SENDER_THREAD: Base = 14 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 14:
+============
+SENDER_THREAD: |SeqNumber = 14 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 15:
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 14:
+============
+SENDER_THREAD: |SeqNumber = 14 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 14 a 14.
+SENDER_THREAD: Base = 15
+SENDER_THREAD: Base = 15 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 15:
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 15:
+============
+SENDER_THREAD: |SeqNumber = 15 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 15 a 15.
+SENDER_THREAD: Base = 16
+SENDER_THREAD: Base = 16 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 16:
+============
+SENDER_THREAD: |SeqNumber = 16 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 16 a 16.
+SENDER_THREAD: Base = 17
+SENDER_THREAD: Base = 17 != 18 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i n ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 17:
+============
+SENDER_THREAD: |SeqNumber = 17 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 17 a 17.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Base = 18 = nextseqnum => Pára o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+SEND_MESSAGE: Sending = FALSE
+SEND_MESSAGE: Sending = TRUE
+SEND_MESSAGE: length = 98
+SEND_MESSAGE: initialseqnumber = 18
+SEND_MESSAGE: Enviar 7 pacotes
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = # i n c l u d e [SPC] " . . / i n 
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+--------------------------------------------
+SEND_MESSAGE: Coloca na fila de envio
+SENDER_THREAD: Tem dados para enviar.
+SEND_MESSAGE: Data = 
+SENDER_THREAD: Base = 18
+SEND_MESSAGE: Coloca na fila de envio
+SENDER_THREAD: Nextseqnum = 18
+SEND_MESSAGE: Data = 
+SENDER_THREAD: Cria pacote com nextseqnum = 18
+SEND_MESSAGE: Coloca na fila de envio
+============
+SENDER_THREAD: |SeqNumber = 18 |
+SEND_MESSAGE: Data = SENDER_THREAD: |OrigPort = 8328 |
+
+SEND_MESSAGE: Coloca na fila de envio
+SEND_MESSAGE: Data = 
+SENDER_THREAD: |DestPort = 8074 |
+SEND_MESSAGE: Coloca na fila de envio
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = # i SEND_MESSAGE: Data = n d c l u d e [SPC] " . . / i e [SPC] n " . . / i 
+|
+============
+SENDER_THREAD: Enviou segmento.
+SENDER_THREAD: Base = nextseqnum = 18.
+SENDER_THREAD: Reiniciou timer.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 19
+SENDER_THREAD: Cria pacote com nextseqnum = 19
+============
+SENDER_THREAD: |SeqNumber = 19 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = c l u d e / u s e r _ i n t e |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 20
+SENDER_THREAD: Cria pacote com nextseqnum = 20
+============
+SENDER_THREAD: |SeqNumber = 20 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 21
+SENDER_THREAD: Cria pacote com nextseqnum = 21
+============
+SENDER_THREAD: |SeqNumber = 21 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 22
+SENDER_THREAD: Cria pacote com nextseqnum = 22
+============
+SENDER_THREAD: |SeqNumber = 22 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 23
+SENDER_THREAD: Cria pacote com nextseqnum = 23
+============
+SENDER_THREAD: |SeqNumber = 23 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Tem dados para enviar.
+SENDER_THREAD: Base = 18
+SENDER_THREAD: Nextseqnum = 24
+SENDER_THREAD: Cria pacote com nextseqnum = 24
+============
+SENDER_THREAD: |SeqNumber = 24 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i i ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviou segmento.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 18:
+============
+SENDER_THREAD: |SeqNumber = 18 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 18 a 18.
+SENDER_THREAD: Base = 19
+SENDER_THREAD: Base = 19 != 25 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 19:
+============
+SENDER_THREAD: |SeqNumber = 19 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = c l u d e / u s e r _ i n t e |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 20:
+============
+SENDER_THREAD: |SeqNumber = 20 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 21:
+============
+SENDER_THREAD: |SeqNumber = 21 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 22:
+============
+SENDER_THREAD: |SeqNumber = 22 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 23:
+============
+SENDER_THREAD: |SeqNumber = 23 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 24:
+============
+SENDER_THREAD: |SeqNumber = 24 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i i ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 19:
+============
+SENDER_THREAD: |SeqNumber = 19 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 19 a 19.
+SENDER_THREAD: Base = 20
+SENDER_THREAD: Base = 20 != 25 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 20:
+============
+SENDER_THREAD: |SeqNumber = 20 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = r f a c e . h " 0xa 0xa i n t [SPC] m |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 21:
+============
+SENDER_THREAD: |SeqNumber = 21 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 22:
+============
+SENDER_THREAD: |SeqNumber = 22 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 23:
+============
+SENDER_THREAD: |SeqNumber = 23 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = [SPC] [SPC] [SPC] r e t u r n [SPC] a p p _ s |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 24:
+============
+SENDER_THREAD: |SeqNumber = 24 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = d e [SPC] " . . / i i ! 0xb 0xfe 0x7f 0x0 0x0 |
+============
+SENDER_THREAD: Enviado.
+--------------------------------------------
+TRANSPORT: Chegou algo.
+TRANSPORT: Achou conexão relacionda, socket 99.
+--------------------------------------------
+SENDER_THREAD: Tem dados para receber.
+SENDER_THREAD: Recebeu Ack 20:
+============
+SENDER_THREAD: |SeqNumber = 20 |
+SENDER_THREAD: |OrigPort = 8074 |
+SENDER_THREAD: |DestPort = 8328 |
+SENDER_THREAD: |Flags = 0x4 |
+SENDER_THREAD: |Data = 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 |
+============
+SENDER_THREAD: Desalocou pacotes de 20 a 20.
+SENDER_THREAD: Base = 21
+SENDER_THREAD: Base = 21 != 25 = nextseqnum => Reinicia o timer
+SENDER_THREAD: Desalocou pacote recebido.
+--------------------------------------------
+--------------------------------------------
+SENDER_THREAD: Timeout!
+SENDER_THREAD: Reinicia o timer
+SENDER_THREAD: Reenvia janela:
+SENDER_THREAD: Pacote 21:
+============
+SENDER_THREAD: |SeqNumber = 21 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = a i n ( i n t [SPC] a r g c , [SPC] c |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 22:
+============
+SENDER_THREAD: |SeqNumber = 22 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD: |DestPort = 8074 |
+SENDER_THREAD: |Flags = 0x0 |
+SENDER_THREAD: |Data = h a r [SPC] * * a r g v ) 0xa { 0xa [SPC] |
+============
+SENDER_THREAD: Enviado.
+SENDER_THREAD: Pacote 23:
+============
+SENDER_THREAD: |SeqNumber = 23 |
+SENDER_THREAD: |OrigPort = 8328 |
+SENDER_THREAD

@@ -11,9 +11,11 @@ void pkg_queue_push(PackageQueue*, Package*);
 
 Package* pkg_queue_pop(PackageQueue*);
 
+Package* pkg_queue_front(PackageQueue* q);
+
 int pkg_queue_isempty(PackageQueue*);
 
-void clear_queue(PackageQueue * queue);
+void pkg_clear_queue(PackageQueue * queue);
 
 
 #endif

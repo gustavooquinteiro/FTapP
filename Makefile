@@ -33,11 +33,12 @@ build:
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos"
 
 $(APP_CLIENT_NAME): ./build/requisition_queue.o ./build/network.o ./build/transport.o \
-./build/client.o ./build/user_interface.o ./build/pkg_queue.o
+./build/client.o ./build/user_interface.o ./build/pkg_queue.o ./build/data_queue.o
 	gcc $(CLIENT_C) $^ $(GTK_FLAGS) -o $@  
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
-$(APP_SERVER_NAME): ./build/transport.o ./build/requisition_queue.o ./build/network.o ./build/pkg_queue.o
+$(APP_SERVER_NAME): ./build/transport.o ./build/requisition_queue.o ./build/network.o ./build/pkg_queue.o \
+./build/data_queue.o
 	gcc $(SERVER_C) $^ $(FLAGS) -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 

@@ -1,5 +1,6 @@
 #include "../include/pkg_queue.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct node node;
 
@@ -39,6 +40,7 @@ void pkg_queue_push(PackageQueue* q, Package* pkg){
 }
 
 Package* pkg_queue_pop(PackageQueue* q){
+	// printf("PKG_QUEUE_POP: Entrou aqui.\n");
 	node* removed = q->front;
 
 	if(removed->prev != NULL){
@@ -51,15 +53,26 @@ Package* pkg_queue_pop(PackageQueue* q){
 	Package* pkg = removed->pkg;
 	free(removed);
 
+	// printf("PKG_QUEUE_POP: Fez as operações.\n");
+
 	return pkg;
 }
+
+Package* pkg_queue_front(PackageQueue* q){
+	return q->front->pkg;
+}
+
 
 int pkg_queue_isempty(PackageQueue* q){
 	return (q->front == NULL);
 }
 
-void clear_queue(PackageQueue * queue){
-    if (queue)
+void pkg_clear_queue(PackageQueue * queue){
+    if (queue){
+    	while(!pkg_queue_isempty(queue)){
+    		pkg_queue_pop(queue);
+    	}
         free(queue);
+    }
 }
 
