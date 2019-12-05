@@ -31,7 +31,22 @@ Nessa camada opera o protocolo a ser implementado: o FTP, onde o arquivo será e
 
 ### :articulated_lorry: Camada de Transporte
 
-A camada de transporte implementará a confiabilidade da transferência dos dados de acordo com o protocolo TCP.
+A camada de transporte implementará a confiabilidade da transferência dos dados de acordo com um protocolo semelhante ao Go-Back-N.
+O protocolo consiste em 2 threads que executam a máquina Finita de Estado do remetente e do destinatário. 
+
+#### Estrutura do pacote utilizado
+Número de sequencia (_seq_number_) de 32 bits;
+Porta de origem (_orig_port_) de 16 bits;
+Porta de destino (_dest_port_) de 16 bits;
+Campo de flags (_flags_) de 8 bits;
+Campo de dados (_data_) de 15 slots com 8 bits cada;
+Checksum (_checksum_) de 16 bits;
+
+**Remetente**: Começa com ele definindo valores para a variável _base_ e _nextseqnum_. Após isso, é criado um buffer de pacotes do tamanho da janela (com a janela sendo definida por `WINDOW_SIZE` e tendo tamanho igual a 20 pacotes). Espera-se, então, por um evento de recebimento ou envio de dados. 
+Caso seja um envio, faz-se uma verificação de se o próximo número de sequencia (_nextseqnum_) está dentro da janela, o que quer dizer que _nextseqnum_ < _base_ + `WINDOW_SIZE`. Se sim, gera-se esse pacote com esse número de sequencia e o envia para a camada de baixo. Após isso, é verificado se _base_ é igual ao _nextseqnum_, o que significa que o último pacote enviado é o limite da janela. Então, inicia-se um timer de 2 segundos para o recebimento de um ACK de algum pacote dessa janela. Logo após, é definido o valor de _nextseqnum_ para o seu sucessor. Se nesse período de tempo não for recebido um ACK de _nextseqnum_, a máquina finita de estado entra no timeout e vai executar o reenvio de todos os pacotes de base até _nextseqnum_ – 1. 
+Caso seja um recebimento, checa-se se o pacote não está corrompido - fazendo a verificação de checksum - e se a flag ACK está presente. Se não estiver corrompido, _base_ é definida para o número de sequencia (_seq_number_) desse ACK  + 1. Se a base for igual a _nextseqnum_, o timer criado no envio é interrompido. Se não, ele é reiniciado.
+
+**Destinatário**: O único evento possível é o de recebimento de pacotes. É definido a variável _expectedseqnum_ (iniciada com valor 1). Após o recebimento de um pacote, é verificado se ele não está corrompido e se o número de sequencia desse pacote é o esperado, ou seja, se _expectedseqnum_ é igual ao _seq_number_ do pacote. Se o pacote recebido satisfaz essas condições, os dados (_data_) são extraídos e repassados para a camada de cima (camada de aplicação), é criado um ACK com esse número de sequencia (_seq_number_) e o mesmo é enviado, além de o _expectedseqnum_ ser acrescido em uma unidade.
 
 ###  :satellite: Camada de Rede
 
