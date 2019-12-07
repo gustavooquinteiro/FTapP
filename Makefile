@@ -5,8 +5,11 @@ GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
 FLAGS = -lpthread
 SERVER_C = ./src/server.c
 CLIENT_C = ./src/application.c
-
 USER_INTERFACE = src/user_interface.c
+
+CLIENT_IGNORE = $(SERVER_C) ./src/application.c
+CLIENT_DEPS = $(subst .c,.o, $(subst ./src/,./build/, $(filter-out $(CLIENT_IGNORE), $(wildcard ./src/*.c))))
+SERVER_DEPS = $(filter-out $(subst .c,.o,$(subst ./src/,.build/, $(CLIENT_C))), $(CLIENT_DEPS))
 
 GREEN =
 NC =
@@ -32,27 +35,23 @@ build:
 	@ mkdir build
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Criado diretório para objetos"
 
-$(APP_CLIENT_NAME): ./build/requisition_queue.o ./build/network.o ./build/transport.o \
-./build/client.o ./build/user_interface.o ./build/data_queue.o ./build/timer.o ./build/ip_queue.o ./build/seg_queue.o
-	gcc $(CLIENT_C) $^ $(GTK_FLAGS) -o $@ -g
+$(APP_CLIENT_NAME): $(CLIENT_DEPS)
+	@ gcc $(CLIENT_C) $^ $(GTK_FLAGS) -o $@ -g
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
 $(APP_SERVER_NAME): ./build/transport.o ./build/requisition_queue.o ./build/network.o  \
 ./build/data_queue.o ./build/timer.o ./build/ip_queue.o ./build/seg_queue.o
-	gcc $(SERVER_C) $^ $(FLAGS) -o $@ -g
+	@ gcc $(SERVER_C) $^ $(FLAGS) -o $@ -g
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
-
-
 build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
-	gcc -c $(GTK_FLAGS) $< -o $@
+	@ gcc -c $(GTK_FLAGS) $< -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 build/%.o: ./src/%.c ./include/%.h 
-	gcc -c $< -o $@ 
+	@ gcc -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 	
-
 
 clean:
 	@ $(ECHO) " Limpando workspace..."
