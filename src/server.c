@@ -82,17 +82,17 @@ void * receive_file(void * socket_connection)
     }
     printf("\n");
     printf("--------------------------------------\n");
-    if(send_message(conn_socket, max_pkg_bytes, 4) == -1){
+    if(GBN_send(conn_socket, max_pkg_bytes, 4) == -1){
         perror(RESPONSE_ERROR);
-        delete_connection_socket(conn_socket);
+        GBN_close(conn_socket);
         pthread_exit(NULL);
     }
 
     // Recebe o tamanho do arquivo e tamanho de cada pacote, determinado pelo cliente
-    returned_value = receive_message(conn_socket, control_buffer, CTRLBUFF_SIZE);
+    returned_value = GBN_receive(conn_socket, control_buffer, CTRLBUFF_SIZE);
     if(returned_value == -1 || returned_value == 0){        
         perror(RECEIVE_INFO_ERROR);
-        delete_connection_socket(conn_socket);
+        GBN_close(conn_socket);
         pthread_exit(NULL);        
     }
     uint64_t filesize = toLong(control_buffer);
@@ -103,7 +103,7 @@ void * receive_file(void * socket_connection)
     pthread_mutex_lock(&lock);
 
     char my_ip[20];
-    get_peer_ip(conn_socket, my_ip);
+    GBN_peer_ip(conn_socket, my_ip);
     //printf("Conectado com %d\n", get_peer_ip(conn_socket)); 
     mkdir(my_ip, S_IRWXU);
     char file_name [300];
@@ -145,7 +145,7 @@ void * receive_file(void * socket_connection)
     printf("Receiving file...\n");
     while(rest > 0){
         int howMuchReceive = (rest < pkg_size) ? rest : pkg_size;
-        msgsize = receive_message(conn_socket, data_buffer, howMuchReceive);
+        msgsize = GBN_receive(conn_socket, data_buffer, howMuchReceive);
 
         if(msgsize == -1 || msgsize == 0) {
             error = 1;
@@ -163,7 +163,7 @@ void * receive_file(void * socket_connection)
     fclose(file);  
     if (error == 1) {
         int status = remove(file_name);
-        delete_connection_socket(conn_socket);
+        GBN_close(conn_socket);
         pthread_exit(NULL);
     }
 
@@ -171,13 +171,12 @@ void * receive_file(void * socket_connection)
     printf("Success: File received.\n");
             
     // Envia resposta
-    if(send_message(conn_socket, hello, 30) == -1){
-        delete_connection_socket(conn_socket);
+    if(GBN_send(conn_socket, hello, 30) == -1){
+        GBN_close(conn_socket);
         perror(SERVER_CONFIRM_ERROR);
         pthread_exit(NULL);
     }
     printf("Arquivo recebido com sucesso.\n");
-    delete_connection_socket(conn_socket);  
     printf("end from thread\n"); 
     pthread_exit(NULL);
 }
@@ -195,9 +194,9 @@ int main(int argc, char const *argv[])
         return 1;
     }
     
-    transport_init(SERVER);
+    GBN_transport_init(SERVER);
     while(listener_socket == -1 && attempts < 3){
-        listener_socket = new_listener_socket(PORT);
+        listener_socket = GBN_listen(PORT);
         attempts++;
     }
     if (listener_socket == -1){
@@ -206,22 +205,24 @@ int main(int argc, char const *argv[])
     }
     
     while(TRUE){
-        int conn_socket = new_connection_socket(listener_socket);
+        int conn_socket = GBN_accept(listener_socket);
         if (conn_socket == -1){
             perror(CONN_CREATION_ERROR);
             continue;
         }
+
+        printf("Fez o maluco\n");
         
         char connect_buffer[1];
-        returned_value = receive_message(conn_socket, connect_buffer, 1);
+        returned_value = GBN_receive(conn_socket, connect_buffer, 1);
         if(returned_value == -1 || returned_value == 0){        
             perror(REQUEST_ERROR);
-            delete_connection_socket(conn_socket);
+            GBN_close(conn_socket);
             continue;
         }
         if(connect_buffer[0] != 'A'){
             printf("É diferente de 'A'\n");
-            delete_connection_socket(conn_socket);
+            GBN_close(conn_socket);
             continue;
         }
         
@@ -230,6 +231,6 @@ int main(int argc, char const *argv[])
         // printf("Criei a thread fodasse\n");
     }
 
-    delete_listener_socket(listener_socket);
+    GBN_close(listener_socket);
     return 0;
 }

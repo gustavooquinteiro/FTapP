@@ -1,36 +1,26 @@
 #ifndef _QUEUE_H
 #define _QUEUE_H
 
-// Definição de constantes para legibilizar código
-#define ZERO 0
-#define ONE 1
-#define MALLOC_ERROR "Dynamic allocation failed"
-
 // Assinaturas das funções e struct
-typedef struct queue Queue;
+typedef struct req_queue RequisitionQueue;
+typedef struct segment Segment;
 
 // Função que aloca na memoria uma queue
-Queue * defineQueue();
+RequisitionQueue * new_req_queue();
 
 // Função que insere um novo elemento na queue.
-Queue * qpush(Queue * queue, char * newRequisition);
+void req_queue_push(RequisitionQueue* q, Segment* segment, char* ip);
 
 // Função que remove o elemento da frente da queue 
-Queue * qpop(Queue * queue);
+Segment* req_queue_pop(RequisitionQueue* q, char * returned_ip);
 
 // Função que verifica se a queue está vazia
-int qisEmpty(Queue * queue);
+int req_queue_isempty(RequisitionQueue* q);
 
 // Função que retorna o elemento da frente da queue
-char* qfront (Queue * queue);
-
-// Função que retorna o elemento do fim da queue
-char* qback(Queue * queue);
-
-// Função que retorna o tamanho da queue
-int qsize(Queue * queue);
+Segment* req_queue_front(RequisitionQueue* q);
 
 // Função que desaloca a queue da memória
-void clearQueue(Queue * queue);
+void req_clear_queue(RequisitionQueue * queue);
 
 #endif

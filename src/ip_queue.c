@@ -1,36 +1,36 @@
-#include "../include/data_queue.h"
+#include "../include/ip_queue.h"
 #include <stdlib.h>
 #include <string.h>
 
 
-#define SIZE 15
+#define SIZE 16
 
 typedef struct node node;
 
 
 struct node
 {
-	char data[SIZE];
+	char ip[SIZE];
 	node* next;
 	node* prev;
 };
 
-struct data_queue{
+struct ip_queue{
 	node* 	back;
 	node* 	front;
 };
 
 
-DataQueue* new_data_queue(){
-	DataQueue* new = (DataQueue*) malloc(sizeof(DataQueue));
+IpQueue* new_ip_queue(){
+	IpQueue* new = (IpQueue*) malloc(sizeof(IpQueue));
 	new->back = NULL;
 	new->front = NULL;
     return new;
 }
 
-void data_queue_push(DataQueue* q, char* data){
+void ip_queue_push(IpQueue* q, char* ip){
 	node* inserted = (node*) malloc(sizeof(node));
-	memcpy((void*)inserted->data, (void*)data, SIZE);
+	memcpy((void*)inserted->ip, (void*)ip, SIZE);
 
 	if(q->back != NULL){
 		q->back->prev = inserted;
@@ -43,7 +43,7 @@ void data_queue_push(DataQueue* q, char* data){
 	q->back = inserted;
 }
 
-void data_queue_pop(DataQueue* q, char* return_data){
+void ip_queue_pop(IpQueue* q, char* return_ip){
 	node* removed = q->front;
 
 	if(removed->prev != NULL){
@@ -54,23 +54,22 @@ void data_queue_pop(DataQueue* q, char* return_data){
 
 	q->front = removed->prev;
 
-	if(return_data != NULL) 
-		memcpy((void*)return_data, (void*)removed->data, SIZE);
+	if(return_ip != NULL) 
+		memcpy((void*)return_ip, (void*)removed->ip, SIZE);
 	
 	free(removed);
 }
 
-int data_queue_isempty(DataQueue* q){
+int ip_queue_isempty(IpQueue* q){
 	return (q->front == NULL);
 }
 
-void data_clear_queue(DataQueue * queue){
+void ip_clear_queue(IpQueue * queue){
     if (queue){
-    	while(!data_queue_isempty(queue)){
-    		data_queue_pop(queue, NULL);
+    	while(!ip_queue_isempty(queue)){
+    		ip_queue_pop(queue, NULL);
     	}
         free(queue);
     }
-    queue = NULL;
 }
 

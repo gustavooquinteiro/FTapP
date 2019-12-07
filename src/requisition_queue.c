@@ -1,77 +1,97 @@
 #include "../include/requisition_queue.h"
-#include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
-#include <stdlib.h>	
+#include <string.h>
 
-typedef struct queue{
-	char   requisition[16]; 	
-	struct queue * next;
-	struct queue * begin;
-	struct queue * end;
-	int size;
-} Queue; 
+#define SIZE 16
 
-Queue * defineQueue(){
-	Queue * queue = (Queue *)malloc(sizeof(Queue));
-	if (!queue){
-		perror(MALLOC_ERROR);
-		exit(EXIT_FAILURE); 
-	} else{
-		queue->begin = NULL;
-		queue->end = NULL;
-		queue->next = NULL;
-		queue->size = ZERO;
+typedef struct node node;
+
+struct node
+{
+    char ip[16];
+	Segment* segment;
+	node* next;
+	node* prev;
+};
+
+struct req_queue{
+	node* 	back;
+	node* 	front;
+};
+
+
+RequisitionQueue* new_req_queue(){
+	RequisitionQueue* new = (RequisitionQueue*) malloc(sizeof(RequisitionQueue));
+	new->back = NULL;
+	new->front = NULL;
+    return new;
+}
+
+void req_queue_push(RequisitionQueue* q, Segment* segment, char* ip){
+	if (ip == NULL){
+        return;
 	}
-	return queue;
-}
-
-Queue * qpush(Queue * queue, char* newReq){
-	Queue * new = (Queue *)malloc(sizeof(Queue)); 
-	if (!new){
-		perror(MALLOC_ERROR); 
-		exit(EXIT_FAILURE);
-	} else{
-		strcpy(new->requisition, newReq);
-		new->next = NULL;
-		if (qisEmpty(queue)){
-			queue->begin = new;
-		} else
-			queue->end->next = new;
-		queue->size += ONE;
-		queue->end = new;
+	
+	node* inserted = (node*) malloc(sizeof(node));
+	inserted->segment = segment;
+	
+	strcpy(inserted->ip, ip);
+	
+	if(q->back != NULL){
+		q->back->prev = inserted;
+	}else{
+		q->front = inserted;
 	}
-	return queue; 
+
+	inserted->next = q->back;
+	inserted->prev = NULL;
+	q->back = inserted;
 }
 
-Queue * qpop(Queue * queue){
-	if (qisEmpty(queue)){
-		queue->end = NULL;
-	} else{
-		Queue *aux = queue->begin;
-		queue->begin = aux->next; 		 
-		free(aux);
+Segment* req_queue_pop(RequisitionQueue* q, char * returned_ip){
+	// printf("BLZ3\n");
+	node* removed = q->front;
+
+	if(removed->prev != NULL){
+		removed->prev->next = NULL;
+	}else{
+		q->back = NULL;
 	}
-	queue->size -= ONE;
-	return queue; 
+
+	// printf("BLZ1\n");
+
+	q->front = removed->prev;
+	Segment* segment = removed->segment;
+	
+	if(returned_ip != NULL) 
+		strcpy(returned_ip, removed->ip);
+	
+	free(removed);
+
+	// printf("BLZ2\n");
+
+	return segment;
+
+	// return NULL;
 }
 
-int qisEmpty(Queue *queue){
-	return (queue->begin == NULL)? ONE: ZERO; 
+Segment* req_queue_front(RequisitionQueue* q){
+	return q->front->segment;
 }
 
-char* qfront (Queue * queue){
-	return qisEmpty(queue)? NULL: queue->begin->requisition; 
+
+int req_queue_isempty(RequisitionQueue* q){
+	return (q->front == NULL);
 }
 
-char* qback (Queue * queue){
-	return qisEmpty(queue)? NULL: queue->end->requisition;  
+void req_clear_queue(RequisitionQueue * queue){
+    if (queue){
+    	while(!req_queue_isempty(queue)){
+    		req_queue_pop(queue, NULL);
+    	}
+        free(queue);
+    }
+    queue = NULL;
 }
 
-int qsize(Queue * queue){
-	return queue->size;
-}
-
-void clearQueue(Queue * queue){
-	if (queue)
-		free(queue); 
-}

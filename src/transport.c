@@ -1,214 +1,899 @@
 #include "../include/transport.h"
-#include "../include/network.h"
 #include "../include/requisition_queue.h"
-#include "../include/pkg_queue.h"
 #include "../include/data_queue.h"
+#include "../include/seg_queue.h"
+#include "../include/ip_queue.h"
+#include "../include/timer.h"
+#include "../include/network.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <pthread.h>
-#include <time.h>
-#include <signal.h>
-#include <unistd.h>
+// Para debug
+#include <stdio.h>
 
-#define PKG_SIZE    26
-#define DATA_SIZE   15
-#define MAX_PORT    65535
-#define MAX_SOCKETS 100
-#define LISTENER_ID 100
-#define WINDOW_SIZE 20
-#define TIME 2000
-#define TRUE 1
+#define TRUE  1
 #define FALSE 0
 
-#define ALLOC(X) (X*) malloc(sizeof(X))
-              
-#define MAX_SOCKETS_ERROR       "Sockets limit reached."
-#define CONNECTION_EXISTS_ERROR "Connection already exists"
-#define LISTENER_ERROR          "Listener already exists."
-#define ID_LISTENER_ERROR       "Not a listener"
-#define MUTEX_ERROR             "Thread mutex init fail."
-#define MUTEX_LOCK_ERROR        "Thread mutex lock fail."
-#define MUTEX_UNLOCK_ERROR      "Thread mutex unlock fail."
-#define NULL_ERROR              "Pointer is null.\n"
-#define THREAD_CANCEL_ERROR     "Cancel thread error."
+#define MAX_SOCKETS 128
+#define MAX_PORT    65535
 
+#define WINDOW_SIZE 20
+#define SEG_SIZE    26
+#define DATA_SIZE   15
 
 #define ACK_FLAG 0b00000100
 #define SYN_FLAG 0b00000010
 #define FIN_FLAG 0b00000001
-#define END_FLAG 0b00001000
 
-// Struct do connection socket da camada de transporte
-typedef struct connection_socket{
-    int timeout;
-    int stop_timer;
-    int start_timer;
+#define ALLOC(TYPE) (TYPE*) malloc(sizeof(TYPE))
+#define LOCK(MUTEX) pthread_mutex_lock(&MUTEX)
+#define UNLOCK(MUTEX) pthread_mutex_unlock(&MUTEX)
 
-    int receiving;
-    int sending;
-    uint32_t end_of_message;
+typedef struct gbn_socket 	GBN_Socket;
+typedef struct segment		Segment;
+typedef struct requisition	Requisition;
+typedef enum state			State;
 
-    uint16_t    local_port;
-    uint16_t    remote_port;
-    char        remote_IP[16];    
-    PackageQueue*  pkg_queue;
-    DataQueue*  data_queue;
-    pthread_mutex_t queue_lock;
-    pthread_mutex_t data_queue_lock;
-    
-    pthread_t snd_thread;
-    pthread_t rcv_thread;
-} ConnectionSocket;
+// Estados possives
+enum state{
+	CLOSED,
+	ESTABLISHED, 
+	CLOSE_WAIT, 
+	FIN_WAIT_1, 
+	FIN_WAIT_2, 
+	LAST_ACK, 
+	TIME_WAIT, 
+	SYN_SENT,
+	SYN_SEND,
+	SYN_ACK,
+	FIN_SEND,
+	SYN_RCVD,
+	LISTEN,
+	UNSET
+};
 
-// Struct do listener socket da camada de transporte
-typedef struct listener_socket{
-    uint16_t     port;
-    PackageQueue*   req_pkg_queue; 
-    Queue*          req_ip_queue;
+struct gbn_socket
+{
+	// Propriedades fundamentais do socket
+	int 		id;
+	uint16_t 	local_port;
+	uint16_t 	remote_port;
+	char		remote_IP[16];
+	Timer*		TTL;
+	Timer*		close_timer;
+	State  		state;
 
-    PackageQueue*   pkg_queue; 
-    Queue*          pkg_ip_queue;  
-    pthread_mutex_t req_queue_lock;
-    pthread_mutex_t queue_lock;    
-    pthread_t       thread;   
-} ListenerSocket;
+	// Filas/Buffers e os mutexes relacionados a eles
+	RequisitionQueue*	req_queue;
+	DataQueue*			snd_buffer;
+	DataQueue*			rcv_buffer;
+	pthread_mutex_t 	req_mutex;
+	pthread_mutex_t 	snd_mutex;
+	pthread_mutex_t 	rcv_mutex;
+	
+	// Variáveis do remetente
+	uint32_t	nextseqnum;
+	uint32_t	base;
+	Segment*	window[WINDOW_SIZE];
+	Timer*		gbn_timer;
 
-// Estrutura que armazena os sockets
-ConnectionSocket*   sockets[MAX_SOCKETS];
-ListenerSocket*     listener_socket = NULL;
-pthread_t           trans_thread;
+	// Variáveis do destinatário
+	uint32_t 	expectedseqnum;
+	Segment*	ack;
+};
 
-// Variável que indica se quem está manipulando é o cliente
-int REAL_SENDER_PORT;
-int REAL_RECEIVER_PORT;
-int USER_TYPE;
-
-// Struct do segmento da camada de transporte
-typedef struct package{
-    uint32_t    seq_number;
+struct segment
+{
+	uint32_t    seq_number;
     uint16_t    orig_port;
-    uint16_t    dest_port;    
+    uint16_t    dest_port; 
+    uint16_t    checksum;   
     uint8_t     flags;
-    uint8_t     data[DATA_SIZE];
-    uint16_t    checksum;
-} Package;
+    uint8_t     data[DATA_SIZE];    
+};
+
+// VARIÁVEIS GLOBAIS
+// Vetor que guarda os SOCKETS
+GBN_Socket* SOCKETS[MAX_SOCKETS];
+
+// Thread para ouvir a camada de rede
+SegmentQueue* 	NETWORK_SEG_BUFFER;
+IpQueue*		NETWORK_IP_BUFFER;
+pthread_mutex_t NETWORK_MUTEX;
+pthread_t 		NETWORK_THREAD;
+int 			END_NETWORK = FALSE;
+
+// Thread em que o kernel vai rodar
+pthread_t 	KERNEL;
+int 		END_KERNEL = FALSE;
+
+int 		USER_TYPE;
+uint16_t 	REAL_SENDER_PORT;
+uint16_t 	REAL_RECEIVER_PORT;
+
+pthread_mutex_t DELETE_MUTEX;
 
 
-void print_pack(Package* pkg, char* funcName){
+// UTILIZADO PELAS FUNÇÕES PUBLICAS
+// Função associada à thread que ouve da camada de rede
+void* listen_network_layer(void* data);
+// Função associada à thread do kernel
+void* kernel_thread(void* data);
+// Aloca um socket de conexão
+GBN_Socket* make_connection(int id, uint16_t local_port, uint16_t remote_port, const char* remote_IP);
+// Aloca um socket ouvidor
+GBN_Socket* make_listener(int id, uint16_t local_port);
+// Desaloca um socket
+void delete_socket(GBN_Socket* socket);
+// Acha um id disponível
+int get_next_id();
+// Pega uma porta disponível
+int get_port(int remote_port, const char* remote_ip);
+
+// FUNÇÕES PUBLICAS
+int GBN_transport_init(int user_type){
+    // Inicializa USER_TYPE
+    USER_TYPE = user_type;
+    if(user_type == CLIENT){
+        REAL_SENDER_PORT = 8074;
+        REAL_RECEIVER_PORT = 8075;
+    }
+    else if(user_type == SERVER){
+        REAL_SENDER_PORT = 8075;
+        REAL_RECEIVER_PORT = 8074;
+    }
+    else{
+        return -1;
+    }
+
+    // Inicializa vetor de SOCKETS
+    for (int i = 0; i < MAX_SOCKETS; ++i)
+    {
+        SOCKETS[i] = NULL;
+    }
+
+    int not_error = TRUE;
+    int result;
+    // Inicializa as variáveis globais
+    NETWORK_SEG_BUFFER = new_seg_queue();
+    if(NETWORK_SEG_BUFFER == NULL) not_error = FALSE;
+
+	NETWORK_IP_BUFFER  = new_ip_queue();
+	if(NETWORK_IP_BUFFER == NULL) not_error = FALSE;
+
+	result = pthread_mutex_init(&NETWORK_MUTEX, NULL);
+	if (result != 0) not_error = FALSE;
+
+	result = pthread_mutex_init(&DELETE_MUTEX, NULL);
+	if (result != 0) not_error = FALSE;
+
+	if(not_error == FALSE){
+		seg_clear_queue(NETWORK_SEG_BUFFER);
+		ip_clear_queue(NETWORK_IP_BUFFER);
+		pthread_mutex_destroy(&NETWORK_MUTEX);
+		return FALSE;
+	}
+
+    // Ouve da camada de rede
+	result = pthread_create(&NETWORK_THREAD, NULL, listen_network_layer, NULL);
+	if(result != 0) return FALSE;
+    // Kernel
+    result = pthread_create(&KERNEL, NULL, kernel_thread, NULL);        
+    if(result != 0){
+    	pthread_cancel(NETWORK_THREAD);
+    	return FALSE;
+    } 
+
+    return TRUE;
+}
+
+int GBN_listen(int port){
+	// Acha um id disponível
+	int id = get_next_id();
+	if(id == -1) return -1;
+
+	// Cria o socket
+	SOCKETS[id] = make_listener(id, port);
+	if(SOCKETS[id] == NULL) return -1;
+
+	SOCKETS[id]->state = LISTEN;
+
+	return id;
+}
+
+int GBN_accept(int listener_id){
+	if(listener_id >= MAX_SOCKETS) return -1;
+
+	// Acha um id disponível
+	int id = get_next_id();
+	if(id == -1) return -1;
+
+	GBN_Socket* listener = SOCKETS[listener_id];
+	if(listener == NULL) return -1;
+
+	if(listener->state != LISTEN) return -1;
+
+	printf("GBN_Accept: Aguardando receber requisição...\n");
+
+	// Aguarda enquanto a fila de requisições está vazia
+	while(req_queue_isempty(listener->req_queue));
+
+	// Tira a requisição da fila
+	LOCK(listener->req_mutex);
+	char remote_ip[16];
+	Segment* req = req_queue_pop(listener->req_queue, remote_ip);
+	UNLOCK(listener->req_mutex);
+
+	// Cria o socket de conexão
+	SOCKETS[id] = make_connection(id, req->dest_port, req->orig_port, remote_ip);
+	free(req);
+	if(SOCKETS[id] == NULL) return -1;
+
+	// Muda estado para SYN_ACK
+	start_timer(SOCKETS[id]->gbn_timer);
+	SOCKETS[id]->state = SYN_ACK;
+
+	printf("GBN_Accept: Aguardando estabelecer conexão...\n");
+
+	// Aguarda ter conexão estabelecida
+	while(SOCKETS[id]->state != ESTABLISHED && SOCKETS[id]->state != CLOSED);
+
+	// Se tiver fechado, exclui o socket e retorna FALSE
+	if(SOCKETS[id]->state == CLOSED){
+		delete_socket(SOCKETS[id]);
+		return -1;
+	}
+	
+	// Conexão estabelecida
+	printf("GBN_Connect: Conexão estabelecida.\n");
+	return id;
+}
+
+int GBN_connect(int server_port, const char* server_ip){
+	// Acha um id disponível
+	int id = get_next_id();
+	if(id == -1) return -1;
+
+	// Acha uma porta disponível
+	int local_port = get_port(server_port, server_ip);
+
+	// Cria o socket de conexão
+	SOCKETS[id] = make_connection(id, local_port, server_port, server_ip);
+
+	if(SOCKETS[id] == NULL){
+		// printf("Não criou.\n");
+		return -1;
+	}
+
+	// Muda o estado para SYN_SEND
+	start_timer(SOCKETS[id]->gbn_timer);
+	SOCKETS[id]->state = SYN_SEND;
+
+	printf("GBN_Connect: Aguardando estabelecer conexão...\n");
+
+	// Aguarda ter conexão estabelecida
+	while(SOCKETS[id]->state != ESTABLISHED && SOCKETS[id]->state != CLOSED);
+
+	// Se tiver fechado, exclui o socket e retorna FALSE
+	if(SOCKETS[id]->state == CLOSED){
+		delete_socket(SOCKETS[id]);
+		return -1;
+	}
+	
+	// Conexão estabelecida
+	printf("GBN_Connect: Conexão estabelecida.\n");
+	return id;
+}
+
+int GBN_send(int socket_id, char* snd_data, int length){
+	if(socket_id >= MAX_SOCKETS) return -1;
+	GBN_Socket* socket = SOCKETS[socket_id];
+	if(socket == NULL) return -1;
+
+	printf("GBN_send: Enviar algo, length = %i.\n", length);
+
+	int sent_data = 0;
+	int tail_size = length % DATA_SIZE;
+	int last = length - tail_size;
+	printf("GBN_send: Last = %i.\n", last);
+	while(sent_data < last){
+		LOCK(socket->snd_mutex);
+        data_queue_push(socket->snd_buffer, (snd_data + sent_data));
+        UNLOCK(socket->snd_mutex);
+        printf("GBN_send: Coloca dados no buffer.\n");
+        sent_data += DATA_SIZE;
+	}
+
+	// Tem um resto
+	if(tail_size != 0){
+		printf("GBN_send: Tem rabinho.\n");
+		char tail[DATA_SIZE];
+        memcpy(tail, (snd_data + sent_data), tail_size);
+
+        LOCK(socket->snd_mutex);
+        data_queue_push(socket->snd_buffer, tail);
+        UNLOCK(socket->snd_mutex);
+
+        sent_data += tail_size;
+	}
+
+	return sent_data;
+}
+
+int GBN_receive(int socket_id, char* rcv_data, int length){
+	if(socket_id >= MAX_SOCKETS){
+		printf("GBN_receive: Socket tem id inválido.\n");
+		return -1;
+	}
+	GBN_Socket* socket = SOCKETS[socket_id];
+	if(socket == NULL){
+		printf("GBN_receive: Socket com id %i passado é nulo.\n", socket_id);
+		return -1;
+	}
+
+	printf("GBN_receive: Receber dados, length = %i.\n", length);
+	int received_data = 0;
+	int tail_size = length % DATA_SIZE;
+	int last = length - tail_size;
+	while(received_data < last){		
+		// Aguarda ter algo no buffer
+		printf("GBN_receive: Aguardando dados no buffer...\n");
+		char data[DATA_SIZE];
+		while(data_queue_isempty(socket->rcv_buffer));
+		
+		LOCK(socket->rcv_mutex);
+        data_queue_pop(socket->rcv_buffer, data);
+        UNLOCK(socket->rcv_mutex);
+
+        memcpy((rcv_data + received_data), data, DATA_SIZE); 
+
+        printf("GBN_receive: Dados coletados.\n");
+        
+        received_data += DATA_SIZE;
+	}
+
+	// Tem um resto
+	if(tail_size != 0){		
+		// Aguarda ter algo no buffer
+		printf("GBN_receive: Aguardando dados no buffer...\n");
+		char tail[DATA_SIZE];
+		while(data_queue_isempty(socket->rcv_buffer));
+
+		LOCK(socket->rcv_mutex);
+        data_queue_pop(socket->rcv_buffer, tail);
+        UNLOCK(socket->rcv_mutex);
+
+        memcpy((rcv_data + received_data), tail, tail_size);        
+
+        received_data += tail_size;
+	}
+
+	printf("GBN_receive: Recebeu todos os dados.\n");
+	return received_data;
+}
+
+int GBN_peer_ip(int socket_id, char* ip){
+    if(socket_id >= MAX_SOCKETS) return FALSE;
+	GBN_Socket* socket = SOCKETS[socket_id];
+	if(socket == NULL) return FALSE;
+
+    strcpy(ip, socket->remote_IP);
+    return TRUE;
+}
+
+void GBN_close(int socket_id){
+	if(socket_id >= MAX_SOCKETS) return;
+	GBN_Socket* socket = SOCKETS[socket_id];
+	if(socket == NULL) return;
+	if(socket->state != ESTABLISHED) return;
+
+	socket->state = FIN_SEND;
+
+	LOCK(DELETE_MUTEX);
+	printf("GBN_close: Aguradando fechar a conexão...\n");
+	while(socket->state != CLOSED);
+	UNLOCK(DELETE_MUTEX);
+
+	// delete_socket(SOCKETS[socket_id]);
+	SOCKETS[socket_id] = NULL;
+}
+
+void GBN_transport_end(){
+    pthread_cancel(NETWORK_THREAD);
+	END_KERNEL = TRUE;
+	pthread_join(KERNEL, NULL);
+	for (int i = 0; i < MAX_SOCKETS; ++i)
+	{
+		if(SOCKETS[i] != NULL) delete_socket(SOCKETS[i]);
+	}
+}
+
+// Ouve da camada de rede e preenchia NETWORK_BUFFER
+void* listen_network_layer(void* data){
+	int result;
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &result);
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &result);	
+
+	while(TRUE){
+		char remoteIP[16];
+		Segment* seg = ALLOC(Segment);
+		// printf("Network: Recebendo na porta real %u\n", REAL_RECEIVER_PORT);
+        result = recv_segment((char*)seg, sizeof(Segment), remoteIP, REAL_RECEIVER_PORT);
+        // printf("Network: Chegou algo do ip %s.\n", remoteIP);
+        if(result == FALSE){
+        	free(seg);
+        	continue;
+        }
+
+        LOCK(NETWORK_MUTEX);
+        seg_queue_push(NETWORK_SEG_BUFFER, seg);
+        ip_queue_push(NETWORK_IP_BUFFER, remoteIP);
+        UNLOCK(NETWORK_MUTEX);
+	}
+}
+
+// UTILIZADO PELO KERNEL
+void print_pack(Segment* seg, char* funcName); // Para DEBUG
+int fin_flag(Segment* seg);
+int syn_flag(Segment* seg);
+int ack_flag(Segment* seg);
+int is_corrupted(Segment* seg);
+Segment* make_seg(	uint32_t seq_number, 
+					uint16_t orig_port, 
+					uint16_t dest_port, 
+					uint16_t flags, 
+					uint8_t* data);
+
+// KERNEL
+void * kernel_thread(void* data){
+	while(TRUE){
+		if(END_KERNEL) break;		
+
+		// If pra saber se chegou algo
+		Segment* seg;
+		char IP[16];
+		int has_segment = FALSE;
+		if(!seg_queue_isempty(NETWORK_SEG_BUFFER)){			
+			LOCK(NETWORK_MUTEX);
+			seg = seg_queue_pop(NETWORK_SEG_BUFFER);
+			ip_queue_pop(NETWORK_IP_BUFFER, IP);
+			UNLOCK(NETWORK_MUTEX);
+
+			if(is_corrupted(seg)){
+				free(seg);
+				has_segment = FALSE;
+			}
+			else{
+				has_segment = TRUE;		
+				// printf("KERNEL: Pacote recebido:\n");
+				// print_pack(seg, "KERNEL");
+			}
+		}
+
+		// For nos sockets pra saber o que fazer,
+		// dependendo do estado e para verificar os timeouts
+		for (int i = 0; i < MAX_SOCKETS; ++i)
+		{
+			if(SOCKETS[i] != NULL){
+				GBN_Socket* s = SOCKETS[i];
+				if(s->state == CLOSED){
+					LOCK(DELETE_MUTEX);
+					printf("Closed.\n");
+					delete_socket(s);
+					UNLOCK(DELETE_MUTEX);
+					continue;
+				}
+				switch(s->state){
+					case LISTEN:
+						if(has_segment && syn_flag(seg) && seg->dest_port == s->local_port){
+							LOCK(s->req_mutex);
+							req_queue_push(s->req_queue, seg, IP);
+							UNLOCK(s->req_mutex);
+						}
+					break;
+
+					case ESTABLISHED:
+					case SYN_SEND:					
+					case SYN_SENT:
+					case SYN_ACK:
+					case SYN_RCVD:
+					case CLOSE_WAIT:
+					case FIN_WAIT_1:
+					case FIN_WAIT_2:
+					case LAST_ACK:
+					case TIME_WAIT:
+					case FIN_SEND:
+						// REMETENTE
+						// Se tem que enviar algo
+						// if(s->state == ESTABLISHED) printf("Kernel: ESTABLISHED\n");
+						// if(!data_queue_isempty(s->snd_buffer)) printf("Kernel: snd_buffer não ta vazio.\n");
+						if(s->state == TIME_WAIT){
+							if(timeout(s->close_timer)){
+								s->state = CLOSED;
+							}
+						}
+						else if(s->nextseqnum < s->base+WINDOW_SIZE){
+							if( !data_queue_isempty(s->snd_buffer) 
+								|| s->state == SYN_SEND
+								|| s->state == SYN_SENT
+								|| s->state == FIN_SEND
+								|| s->state == FIN_WAIT_1
+								|| s->state == FIN_WAIT_2
+								|| s->state == TIME_WAIT
+								|| s->state == CLOSE_WAIT
+							  )
+							{
+								uint8_t 	data[DATA_SIZE];
+								uint8_t  	flags_sent;
+								uint8_t* 	data_sent;
+								int send = TRUE;
+								if(s->state == SYN_SEND){
+									flags_sent = SYN_FLAG;
+									data_sent = NULL;
+									s->state = SYN_SENT;
+									// printf("Kernel: Estado SYN_SEND.\n");
+								}								
+		                		else if(s->state == SYN_SENT){	                			
+		                			if(has_segment && ack_flag(seg) && syn_flag(seg)){
+		                				flags_sent = ACK_FLAG;
+		                				data_sent = NULL;		                			
+		                				s->state = ESTABLISHED;
+		                			}else{
+		                				send = FALSE;
+		                			}	                			
+		                		}		             
+								else if(s->state == ESTABLISHED){																
+									LOCK(s->snd_mutex);
+									data_queue_pop(s->snd_buffer, data);
+									UNLOCK(s->snd_mutex);
+
+									flags_sent = 0;
+									data_sent = data;
+								}
+								else if(s->state == FIN_SEND){
+									printf("FIN_SEND\n");
+									flags_sent = FIN_FLAG;
+									data_sent = NULL;
+									s->state = FIN_WAIT_1;
+								}
+								else if(s->state == FIN_WAIT_1){
+									printf("FIN_WAIT_1\n");
+									if(has_segment && ack_flag(seg)){
+										s->state = FIN_WAIT_2;
+									}
+									else send = FALSE;
+								}
+								else if(s->state == FIN_WAIT_2){
+									printf("FIN_WAIT_2\n");
+									if(has_segment && fin_flag(seg)){
+										printf("Vai pra TIME_WAIT\n");
+										flags_sent = ACK_FLAG;
+		                				data_sent = NULL;
+		                				send = TRUE;
+		                				s->state = TIME_WAIT;
+		                				start_timer(s->close_timer);
+									}
+									else send = FALSE;
+								}
+								else if(s->state == CLOSE_WAIT){
+		                			printf("CLOSE_WAIT\n");
+		                			flags_sent = FIN_FLAG;
+		                			data_sent = NULL;			                	
+			                		s->state = LAST_ACK;
+		                		}
+
+								
+								if(send){
+									// Cria pacote com numero de sequencia nextseqnum
+				                    // e com os dados retirados da pilha
+				                    s->window[s->nextseqnum%WINDOW_SIZE] = make_seg(s->nextseqnum, s->local_port, s->remote_port, flags_sent, data_sent);
+				                    // printf("Kernel: Enviou pacote:\n");
+				                    // print_pack(s->window[s->nextseqnum%WINDOW_SIZE], "Kernel");
+				                    // Envia pacote para a camada de rede
+				                    // printf("Kernel: Mandando para %s\n", s->remote_IP);
+				                    // printf("Kernel: Porta destino real %u\n", REAL_SENDER_PORT);
+				                    send_segment((char*)s->window[s->nextseqnum%WINDOW_SIZE], sizeof(Segment), s->remote_IP, REAL_SENDER_PORT);			                 
+				                    
+				                    if(s->base == s->nextseqnum){
+				                        start_timer(s->gbn_timer);
+				                    }
+
+				                    s->nextseqnum++;
+								}			                    
+							}	                    
+	                	}
+	                	
+	                	// Se recebeu um ack	                	
+	                	if(has_segment && ack_flag(seg)){	                		
+	                		s->base = seg->seq_number + 1;
+	                		if(s->base == s->nextseqnum){
+	                			stop_timer(s->gbn_timer);
+	                		}
+	                		else{
+	                			start_timer(s->gbn_timer);
+	                		}
+	                	}
+
+	                	// Se deu timeeout
+	                	if(timeout(s->gbn_timer)){
+	                		start_timer(s->gbn_timer);
+			                // printf("SENDER_THREAD: Reinicia o timer\n");
+			                // printf("SENDER_THREAD: Reenvia janela:\n");
+			                for(int i = s->base; i < s->nextseqnum; i++){
+			                    // printf("Kernel: Pacote reenviado %u:\n", i);
+			                    // print_pack(s->window[i%WINDOW_SIZE], "Kernel");
+			                    send_segment((char*)s->window[i%WINDOW_SIZE], sizeof(Segment), s->remote_IP, REAL_SENDER_PORT);          
+			                    // printf("SENDER_THREAD: Enviado.\n");
+			                }
+	                	}
+
+	                	// DESTINATÁRIO
+	                	// Se chegou dados
+
+	                	if(s->state == SYN_ACK){
+                			uint8_t flags = ACK_FLAG | SYN_FLAG;
+                			s->state = SYN_RCVD;
+                			free(s->ack);
+	                		s->ack = make_seg(s->expectedseqnum, s->local_port, s->remote_port, flags, NULL);	                			
+	                		// printf("Receiver: Enviou pacote:\n");
+	                		// print_pack(s->ack, "Receiver");
+	                		send_segment((char*)s->ack, sizeof(Segment), s->remote_IP, REAL_SENDER_PORT);
+
+                			s->expectedseqnum++;
+                		}
+
+                		
+                		// if(has_segment == TRUE) printf("Receiver: Tem dados pra receber.\n");            		
+                		// if(syn_flag(seg))  
+                			// printf("Receiver: É SYN.\n");
+	                	if(has_segment && !syn_flag(seg) && s->state != CLOSE_WAIT){                		
+	                		// Se o numero é esperado
+		                	if(seg->seq_number == s->expectedseqnum){		                		
+		                		int send_ack = TRUE;
+		                		if(s->state == SYN_RCVD && ack_flag(seg)){
+		                			// printf("Receiver: Chegou!\n");
+		                			send_ack = FALSE;
+		                			s->state = ESTABLISHED;		                			
+		                		}
+		                		else if(s->state == ESTABLISHED && seg->flags == 0){
+		                			// printf("Receiver: Estado é ESTABLISHED.\n");
+		                			LOCK(s->rcv_mutex);
+	                				data_queue_push(s->rcv_buffer, seg->data);
+	                				UNLOCK(s->rcv_mutex);
+
+	                				// printf("Receiver: Deu push no rcv_buffer.\n");	                				
+		                		}
+		                		else if(s->state == ESTABLISHED && fin_flag(seg)){
+		                			printf("Recebeu um fin_flag\n");
+		                			s->state = CLOSE_WAIT;		                			
+		                		}
+		                		else if(s->state == LAST_ACK && ack_flag(seg)){
+		                			printf("LAST_ACK\n");
+		                			s->state = CLOSED;
+		                			send_ack = FALSE;
+		                		}
+	                			
+	                			if(send_ack){
+	                				free(s->ack);
+	                				s->ack = make_seg(s->expectedseqnum, s->local_port, s->remote_port, ACK_FLAG, NULL);	                			
+	                				// printf("Receiver: Enviou pacote:\n");
+	                				// print_pack(s->ack, "Receiver");
+	                				send_segment((char*)s->ack, sizeof(Segment), s->remote_IP, REAL_SENDER_PORT);
+	                			}	                			
+
+
+	                			s->expectedseqnum++;
+	                			// printf("Receiver: Incrementa expected = %u\n", s->expectedseqnum);
+	                		}
+	                		// Se não for o ack esperado
+	                		else if (seg->flags == 0){
+	                			// printf("Não é numero esperado.\n");
+	                			// printf("SeqNumber = %u != %u = Expected\n", seg->seq_number, s->expectedseqnum);
+	                			// printf("Receiver: Enviou pacote:\n");
+	                			// print_pack(s->ack, "Receiver");                			
+	                			send_segment((char*)s->ack, sizeof(Segment), s->remote_IP, REAL_SENDER_PORT);
+	                		}
+	                	}
+	                break;				
+				}
+			}
+		}
+
+		if(has_segment){
+			free(seg);
+			seg = NULL;
+		}
+	}
+}
+
+
+// DEFINIÇÃO DAS FUNÇÕES UTILIZADAS
+
+int get_next_id(){
+	int id = -1;
+	for (int i = 0; i < MAX_SOCKETS; ++i)
+	{
+		if(SOCKETS[i] == NULL){
+			id = i;
+			break;
+		}
+	}
+	return id;
+}
+
+int get_port(int remote_port, const char* remote_ip){
+	// Procura uma porta que nao entre em conflito
+    // com as conexões que já existem
+    uint16_t port;
+    while(TRUE){
+        int found = 1;
+        srand((unsigned)time(NULL));
+        port = 1 + (rand() % MAX_PORT);
+        for (int i = 0; i < MAX_SOCKETS; ++i)
+        {   
+            if( SOCKETS[i] != NULL &&
+                SOCKETS[i]->local_port == port &&
+                SOCKETS[i]->remote_port == remote_port &&
+                strcmp(SOCKETS[i]->remote_IP, remote_ip) == 0)
+            {
+                found = 0;
+                break;
+            }
+        }
+        if(found) break;
+    }
+    return port;
+}
+
+void delete_socket(GBN_Socket* socket){
+	if(socket)
+	{
+		printf("DELETE SOCKET\n");
+		delete_timer(socket->TTL);
+    	delete_timer(socket->close_timer);
+    	delete_timer(socket->gbn_timer);
+    	req_clear_queue(socket->req_queue);
+    	data_clear_queue(socket->snd_buffer);
+    	data_clear_queue(socket->rcv_buffer);
+    	pthread_mutex_destroy(&socket->req_mutex);
+    	pthread_mutex_destroy(&socket->snd_mutex);
+    	pthread_mutex_destroy(&socket->rcv_mutex);
+    	free(socket->ack);
+    	for (int i = 0; i < WINDOW_SIZE; ++i)
+    		free(socket->window[i]);
+    	socket = NULL;
+	}
+}
+
+GBN_Socket* make_listener(int id, uint16_t local_port){
+	int not_error = TRUE;
+    GBN_Socket* socket = ALLOC(GBN_Socket);
+
+    if(socket != NULL){
+
+    	socket->id = id;
+    	socket->local_port = local_port;
+    	socket->remote_port = 0;
+    	memset(socket->remote_IP, 0, 16);
+    	socket->state = UNSET; 
+
+    	socket->req_queue = new_req_queue();	
+    	if(socket->req_queue == NULL) not_error = FALSE;
+
+    	if (pthread_mutex_init(&socket->req_mutex, NULL) != 0) not_error = FALSE;
+
+    } else not_error = FALSE;
+
+    if(not_error == FALSE){
+    	delete_socket(socket);
+    	socket = NULL;
+    }
+
+    return socket;
+}
+
+GBN_Socket* make_connection(int id, uint16_t local_port, uint16_t remote_port, const char* remote_IP){
+	int not_error = TRUE;
+    GBN_Socket* socket = ALLOC(GBN_Socket);
+
+    if(socket != NULL){
+    	// printf("Alocou socket.\n");
+    	socket->id = id;
+    	socket->local_port = local_port;
+    	socket->remote_port = remote_port;
+    	strcpy(socket->remote_IP, remote_IP);
+    	socket->state = UNSET;
+
+    	socket->TTL = new_timer(240000);
+    	if(socket->TTL == NULL) not_error = FALSE;
+    	// if(not_error) printf("Criou TTL\n");
+    	
+    	socket->close_timer = new_timer(30000);
+    	if(socket->close_timer == NULL) not_error = FALSE;
+    	// if(not_error) printf("Criou close_timer_timer\n");
+
+    	socket->snd_buffer = new_data_queue();
+    	if(socket->snd_buffer == NULL) not_error = FALSE;
+    	// if(not_error) printf("Criou snd_buffer\n");
+
+    	socket->rcv_buffer = new_data_queue();
+    	if(socket->rcv_buffer == NULL) not_error = FALSE;
+    	// if(not_error) printf("Criou rcv_buffer\n");
+
+    	if (pthread_mutex_init(&socket->snd_mutex, NULL) != 0) not_error = FALSE;
+    	// if(not_error) printf("Criou snd_mutex\n");
+
+    	if (pthread_mutex_init(&socket->rcv_mutex, NULL) != 0) not_error = FALSE;
+    	// if(not_error) printf("Criou rcv_mutex\n");
+
+    	socket->nextseqnum = 1;
+    	socket->base = 1;
+    	memset(socket->window, 0, WINDOW_SIZE);
+
+    	socket->gbn_timer = new_timer(1000);
+    	if(socket->gbn_timer == NULL) not_error = FALSE;
+    	// if(not_error) printf("Criou gbn_timer\n");
+
+    	socket->expectedseqnum = 1;
+    	socket->ack = make_seg(0,socket->local_port, socket->remote_port, ACK_FLAG, NULL);
+
+    } else not_error = FALSE;
+
+    if(not_error == FALSE){
+    	delete_socket(socket);
+    	socket = NULL;
+    }
+
+    return socket;
+}
+
+void print_pack(Segment* seg, char* funcName){
     printf("============\n");
-    printf("%s: |SeqNumber = %u |\n", funcName, pkg->seq_number);
-    printf("%s: |OrigPort = %u |\n", funcName, pkg->orig_port);
-    printf("%s: |DestPort = %u |\n", funcName, pkg->dest_port);
-    printf("%s: |Flags = 0x%x |\n", funcName, pkg->flags);
+    printf("%s: |SeqNumber = %u |\n", funcName, seg->seq_number);
+    printf("%s: |OrigPort = %u |\n", funcName, seg->orig_port);
+    printf("%s: |DestPort = %u |\n", funcName, seg->dest_port);
+    printf("%s: |Flags = 0x%x |\n", funcName, seg->flags);
     printf("%s: |Data = ", funcName);
     for (int i = 0; i < DATA_SIZE; ++i)
     {
-        if(33 <= pkg->data[i] &&  pkg->data[i] <= 126 && pkg->data[i] != ' ')
-            printf("%c ", pkg->data[i]);
-        else if(pkg->data[i] == ' ')
+        if(33 <= seg->data[i] &&  seg->data[i] <= 126 && seg->data[i] != ' ')
+            printf("%c ", seg->data[i]);
+        else if(seg->data[i] == ' ')
             printf("[SPC] ");
         else
-            printf("0x%x ", pkg->data[i]);
+            printf("0x%x ", seg->data[i]);
     }
     printf("|\n");
     printf("============\n");
 }
 
-void* sender_thread(void* args);
-void* receiver_thread(void* args);
-
-int get_peer_ip(int socket_id, char* ip){
-    ConnectionSocket* socket = sockets[socket_id];
-    strcpy(ip, socket->remote_IP);
-    return 1;
+int fin_flag(Segment* seg){ 
+	if(seg != NULL)
+		return (seg->flags & FIN_FLAG);
+	else return FALSE;
 }
 
-uint32_t base = 1;
-uint32_t nextseqnum = 1;
-
-ConnectionSocket* make_socket(int index, uint16_t local_port, uint16_t remote_port, const char* remote_IP){
-    ConnectionSocket* socket = ALLOC(ConnectionSocket);
-    socket->stop_timer = FALSE;
-    socket->start_timer = FALSE;
-    socket->timeout = FALSE;
-    
-    socket->local_port = local_port;
-    socket->remote_port = remote_port;       
-    strcpy(socket->remote_IP, remote_IP);
-
-    socket->receiving = FALSE;
-    socket->sending = FALSE;
-    socket->end_of_message = -1;
-
-    socket->pkg_queue = new_pkg_queue();
-    socket->data_queue = new_data_queue();
-
-    if (pthread_mutex_init(&socket->queue_lock, NULL) != 0)
-    {
-        free(socket);
-        printf(MUTEX_ERROR);               
-        return NULL;
-    }
-    if (pthread_mutex_init(&socket->data_queue_lock, NULL) != 0)
-    {
-        free(socket);
-        printf(MUTEX_ERROR);               
-        return NULL;
-    }
-    
-    return socket;
+int syn_flag(Segment* seg){ 
+	if(seg != NULL)
+		return (seg->flags & SYN_FLAG);
+	else return FALSE;
 }
 
-void make_checksum(Package* pkg){
-    pkg->checksum = 0;
-    
-    uint32_t aux;
-    uint16_t sum = 0;    
-    uint8_t* data;
-    data = (uint8_t*) pkg;
-    
-    for(int i = 0; i < PKG_SIZE; i+=2){
-        // printf("data[%i] = %x\n", i, data[i]);
-        // printf("data[%i] = %x\n", i+1, data[i+1]);
-        uint16_t operand = data[i+1];
-        operand = operand << 8;
-        operand |= data[i];
-        // printf("operando = %x\n", operand);
-        aux = (uint32_t)sum + (uint32_t)operand;
-        if(aux >> 16 ==1){
-            aux += 1;
-        }
-        sum = aux;
-    }
-    
-    pkg->checksum = ~sum;
+int ack_flag(Segment* seg){ 
+	if(seg != NULL)
+		return (seg->flags & ACK_FLAG);
+	else return FALSE;
 }
 
-Package* make_pkg(uint32_t seq_number, uint16_t orig_port, uint16_t dest_port, uint16_t flags, uint8_t* data){
-    Package* pkg = ALLOC(Package);
-    pkg->seq_number = seq_number;
-    pkg->orig_port = orig_port;
-    pkg->dest_port = dest_port;
-    pkg->flags = flags;
-    if(data != NULL){
-        memcpy((void*)pkg->data, (void*)data, DATA_SIZE);
-    }
-    make_checksum(pkg);
-
-    return pkg;
-}
-
-
-// Verifica se um segmento está corrompido
-int is_corrupted(Package* pkg){
+int is_corrupted(Segment* seg){
     uint32_t aux;
     uint16_t sum = 0;
 
     uint8_t* data;
-    data = (uint8_t*) pkg;
+    data = (uint8_t*) seg;
 
-    for (int i = 0; i < PKG_SIZE ; i+=2)
+    for (int i = 0; i < SEG_SIZE ; i+=2)
     {
         // printf("data[%i] = %x\n", i, data[i]);
         // printf("data[%i] = %x\n", i+1, data[i+1]);
@@ -227,882 +912,41 @@ int is_corrupted(Package* pkg){
     else return TRUE;
 }
 
-int fin_flag(Package* pkg){
-    return (pkg->flags & FIN_FLAG);
-}
-int syn_flag(Package* pkg){
-    return (pkg->flags & SYN_FLAG);
-}
-int ack_flag(Package* pkg){
-    return (pkg->flags & ACK_FLAG);
-}
-int end_flag(Package* pkg){
-    return (pkg->flags & END_FLAG);
-}
-
-void set_ack_flag(Package* pkg){
-    pkg->flags |= 0b00000100;
-}
-void set_syn_flag(Package* pkg){
-    pkg->flags |= 0b00000010;
-}
-
-// Thread que a camada de transporte vai estar sempre executando
-void* listen_network_layer(void* data){
-    int nada;   
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &nada);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &nada);
-
-    printf("TRANSPORT: Começou a ouvir.\n");
-    while(TRUE){        
-        // Recebe um segmento da camada de rede
-        int result;
-        char remoteIP[16];
-        Package* pkg = (Package*) malloc(sizeof(Package));
-        
-        result = recv_segment((char*)pkg, sizeof(Package), remoteIP, REAL_RECEIVER_PORT);
-        printf("TRANSPORT: Chegou algo.\n");
-        
-        if(result == FALSE){
-            perror("TRANSPORT: Receive error");
-            free(pkg);
-            continue;
+void make_checksum(Segment* seg){
+    seg->checksum = 0;
+    
+    uint32_t aux;
+    uint16_t sum = 0;    
+    uint8_t* data;
+    data = (uint8_t*) seg;
+    
+    for(int i = 0; i < SEG_SIZE; i+=2){
+        uint16_t operand = data[i+1];
+        operand = operand << 8;
+        operand |= data[i];
+        aux = (uint32_t)sum + (uint32_t)operand;
+        if(aux >> 16 ==1){
+            aux += 1;
         }
-
-        // printf("TRANSPORT: Package DestPort = %u\n", pkg->dest_port);
-        // printf("TRANSPORT: Package OrigPort = %u\n", pkg->orig_port);
-        // printf("TRANSPORT: Package IP = %s\n", remoteIP);
-        // print_pack(pkg, "TRANSPORT");
-        
-        // Acha qual conexão está relacionada com este segmento
-        int found = 0;
-        for (int i = 0; i < MAX_SOCKETS; ++i)
-        {
-            if( sockets[i] != NULL &&
-                sockets[i]->local_port == pkg->dest_port &&
-                sockets[i]->remote_port == pkg->orig_port &&
-                strcmp(sockets[i]->remote_IP, remoteIP) == 0)
-            {
-                printf("TRANSPORT: Achou conexão relacionda, socket %i.\n", i);
-                pthread_mutex_lock(&sockets[i]->queue_lock);
-                pkg_queue_push(sockets[i]->pkg_queue, pkg);             
-                pthread_mutex_unlock(&sockets[i]->queue_lock);
-                found = 1;
-                break;
-            }
-        }
-
-        if(!found){
-            printf("TRANSPORT: Não achou conexão relacionda.\n");
-        }
-
-        // Se nao achou conexao, e existe listener,
-        // joga pacote pro listener
-        if(!found && listener_socket != NULL){
-            if(pthread_mutex_lock(&listener_socket->queue_lock) != 0) perror(MUTEX_LOCK_ERROR);
-            // printf("TRANSPORT: Lockou o mutex.\n");
-            pkg_queue_push(listener_socket->pkg_queue, pkg);
-            // printf("TRANSPORT: Deu push na fila de pacotes.\n");
-            qpush(listener_socket->pkg_ip_queue, remoteIP);
-            // printf("TRANSPORT: Deu push na fila de IPs.\n");
-            if(pthread_mutex_unlock(&listener_socket->queue_lock) != 0) perror(MUTEX_UNLOCK_ERROR);
-            // printf("TRANSPORT: Unlockou o mutex.\n");
-        }
-
-        // printf("TRANSPORT: Continua ouvindo.\n");       
+        sum = aux;
     }
-}
-// Inicializa execução da camada de transporte
-int transport_init(int user_type){
-    // Inicializa CLIENT
-    USER_TYPE = user_type;
-    if(user_type == CLIENT){
-        REAL_SENDER_PORT = 8074;
-        REAL_RECEIVER_PORT = 8075;
-    }
-    else if(user_type == SERVER){
-        REAL_SENDER_PORT = 8075;
-        REAL_RECEIVER_PORT = 8074;
-    }
-    else{
-        return -1;
-    }
-
-    // Inicializa vetor de sockets
-    for (int i = 0; i < MAX_SOCKETS; ++i)
-    {
-        sockets[i] = NULL;
-    }
-
-    // Ouve da camada de rede
-    pthread_create(&trans_thread, NULL, listen_network_layer, NULL);
-
-    return 1;
-}
-
-// Thread que o socket listener, caso exista, vai estar sempre executando
-void* listen_requisitions(void* data){
-    ListenerSocket* listener = (ListenerSocket*) data; 
-    int nada;   
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &nada);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &nada);
-
-    while(TRUE){
-        // printf("LISTENER: Começou a ouvir.\n");
-        char clientIP[16];
-        Package* pkg;
-        
-        // Aguarda a fila ter pelo menos um pacote
-        while(pkg_queue_isempty(listener->pkg_queue));
-        // printf("LISTENER: Chegou algo.\n");
-
-        // Retira pacote da fila e pega o IP relacionado a ele
-        // na fila de ips
-        if(pthread_mutex_lock(&listener->queue_lock) != 0) perror(MUTEX_LOCK_ERROR);
-        // printf("LISTENER: Lockou o mutex.\n");
-        pkg = pkg_queue_pop(listener->pkg_queue);
-        // printf("LISTENER: Copiou e tirou da fila de pacotes.\n");
-        strcpy(clientIP, qfront(listener->pkg_ip_queue));
-        // printf("LISTENER: Copiou da fila de IPs.\n");
-        qpop(listener->pkg_ip_queue);
-        // printf("LISTENER: Tirou da fila de IPs.\n");
-        if(pthread_mutex_unlock(&listener->queue_lock) != 0) perror(MUTEX_UNLOCK_ERROR);
-
-        // printf("LISTENER: Retirou da fila pacote com ip = %s.\n", clientIP);
-
-        // printf("seq_number = 0x%x\n", pkg->seq_number);
-        // printf("orig_port = 0x%x\n", pkg->orig_port);
-        // printf("dest_port = 0x%x\n", pkg->dest_port);
-        // printf("checksum = 0x%x\n", pkg->checksum);
-        // printf("flags = 0x%x\n", pkg->flags);
-        // for (int i = 0; i < DATA_SIZE; ++i)
-        // {
-        //     printf("0x%x ", pkg->data[i]);
-        // }
-        // printf("\n\n");
-
-        // Se não tiver corrompido e for uma tentativa de conexao,
-        // coloca na fila de requisições
-        if(!is_corrupted(pkg)){
-            // printf("LISTENER: Não está corrompido.\n");
-            if(syn_flag(pkg)){
-                // printf("LISTENER: É tentativa de conexão.\n");
-                pthread_mutex_lock(&listener->req_queue_lock);
-                qpush(listener->req_ip_queue, clientIP);
-                pkg_queue_push(listener->req_pkg_queue, pkg);
-                pthread_mutex_unlock(&listener->req_queue_lock);
-            }else{
-                // printf("LISTENER: NÃO é tentativa de conexão.\n");
-                free(pkg);
-            }
-        }else{
-            // printf("LISTENER: Está corrompido.\n");
-            // Joga o pacote fora
-            free(pkg); 
-        }              
-    }
-}
-
-// Cria um listener socket
-int new_listener_socket(int port){    
-    if(listener_socket != NULL){
-        perror(LISTENER_ERROR);
-        return -1;
-    }
-
-    // Inicializando os valores do listener
-    listener_socket = ALLOC(ListenerSocket);
-    listener_socket->port = port;
-    listener_socket->req_pkg_queue = new_pkg_queue();
-    listener_socket->req_ip_queue = defineQueue();
-    listener_socket->pkg_queue = new_pkg_queue();
-    listener_socket->pkg_ip_queue = defineQueue();
     
-
-    // Cria mutex da thread para evitar erro
-    // na manipulação da fila de requisições
-    if (pthread_mutex_init(&listener_socket->req_queue_lock, NULL) != 0)
-    {
-        printf(MUTEX_ERROR);
-        free(listener_socket);
-        return -1;
-    }
-    // Cria mutex da thread para evitar erro
-    // na manipulação da fila de pacotes
-    if (pthread_mutex_init(&listener_socket->queue_lock, NULL) != 0)
-    {
-        printf(MUTEX_ERROR);
-        free(listener_socket);
-        return -1;
-    }
-
-    // Cria thread para escutar requisições
-    pthread_create(&listener_socket->thread, NULL, listen_requisitions, (void *)listener_socket);
-
-    // Retorna o índice do listener 
-    // (tem que ser maior que o índice máximo)
-    return LISTENER_ID;
+    seg->checksum = ~sum;
 }
 
-volatile int timeout_requisition = FALSE;
-void set_timeout_requisition(int sig){
-    timeout_requisition = TRUE;
+Segment* make_seg(uint32_t seq_number, uint16_t orig_port, uint16_t dest_port, uint16_t flags, uint8_t* data){
+    Segment* seg = ALLOC(Segment);
+    if(seg == NULL) return NULL;
+
+    seg->seq_number = seq_number;
+    seg->orig_port = orig_port;
+    seg->dest_port = dest_port;
+    seg->flags = flags;
+    if(data != NULL) memcpy((void*)seg->data, (void*)data, DATA_SIZE);
+
+    make_checksum(seg);
+
+    return seg;
 }
 
 
-
-int new_connection_socket(int listener_id){
-    // Erro se o id passado não for o id especial de listener,
-    if(listener_id != LISTENER_ID){
-        perror(ID_LISTENER_ERROR);
-        return -1;
-    }
-    // Erro se o listener não estiver criado
-    if(listener_socket == NULL){
-        printf("NEW_CONNECTION: ");
-        printf(NULL_ERROR);
-        return -1;
-    }
-    char ip[16];
-
-    // Loop esperando a fila de requisições ter pelo menos uma requisição
-    while(qisEmpty(listener_socket->req_ip_queue));    
-    
-    // Guarda e retira o próximo da fila
-    pthread_mutex_lock(&listener_socket->req_queue_lock);    
-    strcpy(ip, qfront(listener_socket->req_ip_queue));
-    qpop(listener_socket->req_ip_queue);
-    Package* requisition = pkg_queue_pop(listener_socket->req_pkg_queue);
-    pthread_mutex_unlock(&listener_socket->req_queue_lock); 
-
-    // Cria o socket de conexão, baseado no ip 
-    // da próxima requisição de listener
-    int index = -1;
-    for (int i = 0; i < MAX_SOCKETS; ++i)
-    {
-        if(sockets[i] == NULL){
-            index = i;                
-        }
-        if( sockets[i] != NULL &&
-            sockets[i]->local_port == requisition->dest_port &&
-            sockets[i]->remote_port == requisition->orig_port &&
-            strcmp(sockets[i]->remote_IP, ip) == 0)
-        {
-            perror(CONNECTION_EXISTS_ERROR);
-            free(requisition);
-            return -1;
-        }
-    }
-
-    if(index == -1){
-        perror(MAX_SOCKETS_ERROR);
-        return -1; 
-    }
-
-    // Cria o socket de conexão
-    sockets[index] = make_socket(index, requisition->dest_port, requisition->orig_port, ip);    
-    free(requisition);
-    if(sockets[index] == NULL){
-        return -1;
-    }
-
-    printf("NEW_CONNECTION: Criou o socket\n");
-    printf("NEW_CONNECTION: Socket LocalPort = %u\n", sockets[index]->local_port);
-    printf("NEW_CONNECTION: Socket RemotePort = %u\n", sockets[index]->remote_port);
-    printf("NEW_CONNECTION: Socket IP = %s\n", sockets[index]->remote_IP);
-    
-    // Envia SYNACK
-    // Cria o pacote SYNACK
-    uint16_t local_port = sockets[index]->local_port;
-    uint16_t remote_port = sockets[index]->remote_port;
-    Package* synack = make_pkg(0, local_port, remote_port, ACK_FLAG, NULL);
-
-    int tries = 0;
-    while(tries < 15){
-        // Envia o SYNACK
-        send_segment((char*)synack, sizeof(Package), ip, REAL_SENDER_PORT);
-        printf("NEW_CONNECTION: Tentativa %i: Enviou o SYNACK para %s.\n", tries+1, ip);
-        // Aguarda chegar a respostasend com timeout de 2 segundos
-        timeout_requisition = FALSE;
-        signal(SIGALRM, set_timeout_requisition);
-        alarm(2);
-        while(pkg_queue_isempty(sockets[index]->pkg_queue) && !timeout_requisition);
-       
-        if(!timeout_requisition){
-            // Pega esse pacote
-            
-            Package * pkg = pkg_queue_front(sockets[index]->pkg_queue);            
-            if (!is_corrupted(pkg)){
-                if(!syn_flag(pkg)){
-                    printf("NEW_CONNECTION: Recebeu a tréplica.\n");
-                    // Começa a thread do socket
-                    break;
-                }
-            }else{
-                pthread_mutex_lock(&sockets[index]->queue_lock);
-                pkg_queue_pop(sockets[index]->pkg_queue);
-                pthread_mutex_unlock(&sockets[index]->queue_lock);                
-            }
-            free(pkg);
-        }
-        printf("NEW_CONNECTION: Timeout\n");
-        tries++;        
-    }
-
-    if(tries >= 15){
-        delete_connection_socket(index);
-        free(synack);
-        return -1;
-    }
-
-    // E começa a rodar o socket
-    sockets[index]->receiving = TRUE;
-    printf("NEW_CONNECTION: Receiving = TRUE.\n");
-    pthread_create(&sockets[index]->snd_thread, NULL, sender_thread, (void*)sockets[index]);
-    pthread_create(&sockets[index]->rcv_thread, NULL, receiver_thread, (void*)sockets[index]);
-
-    return index;
-}
-
-int new_requester_socket(uint16_t port, const char* ip){
-    printf("NEW_REQUESTER: Pediu para criar socket.\n");
-    // Procura uma porta que nao entre em conflito
-    // com as conexões que já existem
-    uint16_t local_port;
-    int index = -1;
-    while(TRUE){
-        int found = 1;
-        srand((unsigned)time(NULL));
-        local_port = rand() % MAX_PORT;
-        for (int i = 0; i < MAX_SOCKETS; ++i)
-        {   
-            if(sockets[i] == NULL){
-                index = i;                
-            }
-            if( sockets[i] != NULL &&
-                sockets[i]->local_port == local_port &&
-                sockets[i]->remote_port == port &&
-                strcmp(sockets[i]->remote_IP, ip) == 0)
-            {
-                found = 0;
-                break;
-            }
-        }
-        if(found) break;
-    }
-
-    if(index == -1){
-        perror(MAX_SOCKETS_ERROR);
-        return -1;
-    }
-
-    // Cria o socket de conexão, baseado nos argumentos passados,
-    // com seu id adequado
-    sockets[index] = make_socket(index, local_port, port, ip);
-    if(sockets[index] == NULL) return -1;
-
-    printf("NEW_REQUESTER: Criou o socket\n");
-    printf("NEW_REQUESTER: Socket LocalPort = %u\n", sockets[index]->local_port);
-    printf("NEW_REQUESTER: Socket RemotePort = %u\n", sockets[index]->remote_port);
-    printf("NEW_REQUESTER: Socket IP = %s\n", sockets[index]->remote_IP);
-
-    printf("NEW_REQUESTER: Achou número de porta %u disponível.\n", local_port);
-
-    // Cria o pacote de requisição de conexão
-    Package* req = make_pkg(0, local_port, port, SYN_FLAG, NULL);
-
-    int tries = 0;
-    while(tries < 15){
-        // Envia a requisição
-        send_segment((char*)req, sizeof(Package), ip, REAL_SENDER_PORT);
-        printf("NEW_REQUESTER: Tentativa %i: Enviou a requisição para %s.\n", tries+1, ip);
-        // Aguarda chegar a resposta com timeout de 2 segundos
-        timeout_requisition = FALSE;
-        signal(SIGALRM, set_timeout_requisition);
-        alarm(2);
-        while(pkg_queue_isempty(sockets[index]->pkg_queue) && !timeout_requisition);
-       
-        if(!timeout_requisition){
-            // Pega esse pacote            
-            pthread_mutex_lock(&sockets[index]->queue_lock);
-            Package * pkg = pkg_queue_pop(sockets[index]->pkg_queue);
-            pthread_mutex_unlock(&sockets[index]->queue_lock);
-            if (!is_corrupted(pkg) && ack_flag(pkg)){
-                printf("NEW_REQUESTER: Recebeu o SYNACK.\n");
-                free(pkg);
-                break;
-            }else{
-                free(pkg);
-            }
-        }
-        printf("NEW_REQUESTER: Timeout\n");
-
-        tries++;        
-    }
-
-    if(tries >= 15){
-        delete_connection_socket(index);
-        free(req);
-        perror("NEW_REQUESTER: Could not connect to server.");
-        return -1;
-    }
-
-    // Bota a tréplica na fila de send do socket
-    char reply[DATA_SIZE];
-    memset(reply, 0, DATA_SIZE);
-    pthread_mutex_lock(&sockets[index]->data_queue_lock);
-    data_queue_push(sockets[index]->data_queue, reply);
-    pthread_mutex_unlock(&sockets[index]->data_queue_lock);
-
-    // E começa a rodar o socket
-    sockets[index]->sending = TRUE;
-    printf("NEW_REQUESTER: Sending = TRUE.\n");
-    pthread_create(&sockets[index]->snd_thread, NULL, sender_thread, (void*)sockets[index]);
-    pthread_create(&sockets[index]->rcv_thread, NULL, receiver_thread, (void*)sockets[index]);
-
-
-    return index;     
-}
-
-
-// Depende da criação (new)
-int delete_listener_socket(int listener_id){
-    // Erro se o id passado não for o id especial de listener,
-    if(listener_id != LISTENER_ID){
-        perror(ID_LISTENER_ERROR);
-        return FALSE;
-    }
-    // Erro se o listener não estiver criado
-    if(listener_socket == NULL){
-        printf("DELETE_LISTENER: ");
-        perror(NULL_ERROR);
-        return FALSE;
-    }
-    ListenerSocket* listener = listener_socket;
-    
-    if(pthread_cancel(listener->thread) != 0){
-        perror(THREAD_CANCEL_ERROR);
-    } 
-      
-    pthread_join(listener->thread, NULL);
-    pthread_mutex_destroy(&listener->queue_lock);
-    clearQueue(listener->req_ip_queue);
-    clearQueue(listener->pkg_ip_queue);
-    pkg_clear_queue(listener->pkg_queue);
-    pkg_clear_queue(listener->req_pkg_queue);
-    free(listener);
-    
-    return TRUE;
-}
-
-int delete_connection_socket(int socket_id){
-    ConnectionSocket* socket = sockets[socket_id];
-    if(socket== NULL){
-        printf("DELETE_CONNECTION: ");
-        printf(NULL_ERROR);
-        return FALSE;
-    }
-    pkg_clear_queue(socket->pkg_queue);
-    pthread_mutex_destroy(&socket->queue_lock);
-    free(socket);
-    
-    return TRUE;
-}
-
-
-int getacknum(Package* pkg){
-    return pkg->seq_number;
-}
-
-void* sender_thread(void* args){
-    ConnectionSocket* socket = (ConnectionSocket*) args;
-    
-    Package* window[WINDOW_SIZE];
-    base = (USER_TYPE == CLIENT)? 1 : 2;
-    nextseqnum = (USER_TYPE == CLIENT)? 1 : 2;
-
-    int run_timer = FALSE;
-    int time;
-    int endpoint = TIME;
-    clock_t initial = clock();
-    clock_t difference;
-
-    while(TRUE){
-        if(socket->sending && !socket->receiving){
-            if(run_timer){
-                // printf("SENDER_THREAD: Atualiza timer.\n");
-                difference = clock() - initial;
-                time = difference * 1000 / CLOCKS_PER_SEC; 
-            } 
-            // else printf("SENDER_THREAD: Não atualiza timer.\n");                  
-            
-            // Se tem dados para enviar
-            if(!data_queue_isempty(socket->data_queue) || nextseqnum == socket->end_of_message){
-                printf("--------------------------------------------\n");
-                printf("SENDER_THREAD: Tem dados para enviar.\n");
-                printf("SENDER_THREAD: Base = %u\n", base);
-                printf("SENDER_THREAD: Nextseqnum = %u\n", nextseqnum);
-
-                if(nextseqnum < base+WINDOW_SIZE){
-                    char* data_sent;
-                    char data[DATA_SIZE];
-                    uint8_t flags_sent;
-                    if(nextseqnum == socket->end_of_message){
-                        printf("SENDER_THREAD: É fim de mensagem.\n");
-                        data_sent = NULL;
-                        flags_sent = END_FLAG;
-                    }
-                    else{
-                        // Retira os dados da pilha
-                        pthread_mutex_lock(&socket->data_queue_lock);
-                        data_queue_pop(socket->data_queue, data);
-                        pthread_mutex_unlock(&socket->data_queue_lock);
-                        data_sent = data;
-                        flags_sent = 0;
-                    }                   
-               
-                    // Cria pacote com numero de sequencia nextseqnum
-                    // e com os dados retirados da pilha
-                    printf("SENDER_THREAD: Cria pacote com nextseqnum = %u\n", nextseqnum);
-                    window[nextseqnum%WINDOW_SIZE] = make_pkg(nextseqnum, socket->local_port, socket->remote_port, flags_sent, (uint8_t*)data_sent);
-
-                    print_pack(window[nextseqnum%WINDOW_SIZE], "SENDER_THREAD");
-
-                    // Envia pacote para a camada de rede
-                    send_segment((char*)window[nextseqnum%WINDOW_SIZE], sizeof(Package), socket->remote_IP, REAL_SENDER_PORT);
-                    printf("SENDER_THREAD: Enviou segmento.\n");
-                    
-                    // Se 
-                    if(base == nextseqnum){
-                        printf("SENDER_THREAD: Base = nextseqnum = %u.\n", base);
-                        initial = clock();
-                        time = 0;
-                        run_timer = TRUE;                        
-                        printf("SENDER_THREAD: Reiniciou timer.\n");              
-                    }
-                    // if(nextseqnum == 1) socket->sending = FALSE;
-                    nextseqnum++;
-                }
-                printf("--------------------------------------------\n");
-            }
-
-            if(!pkg_queue_isempty(socket->pkg_queue)){
-                printf("--------------------------------------------\n");
-                printf("SENDER_THREAD: Tem dados para receber.\n");
-                pthread_mutex_lock(&socket->queue_lock);
-                Package* pkg = pkg_queue_pop(socket->pkg_queue);
-                pthread_mutex_unlock(&socket->queue_lock);
-                if (!is_corrupted(pkg) && ack_flag(pkg)){
-                    printf("SENDER_THREAD: Recebeu Ack %u:\n", pkg->seq_number);
-                    print_pack(pkg, "SENDER_THREAD");
-                    for (int i = base; i <= getacknum(pkg); ++i)
-                    {
-                        if(i == socket->end_of_message){
-                            socket->end_of_message = -1;
-                            socket->sending = FALSE;
-                        }
-                        free(window[i%WINDOW_SIZE]);
-                    }
-                    printf("SENDER_THREAD: Desalocou pacotes de %u a %u.\n", base, getacknum(pkg));
-                    base = getacknum(pkg) + 1;
-                    printf("SENDER_THREAD: Base = %u\n", base);
-
-                    if (base == nextseqnum){
-                        printf("SENDER_THREAD: Base = %u = nextseqnum => Pára o timer\n", base);
-                        time = 0;
-                        run_timer = FALSE;
-                    }else{
-                        printf("SENDER_THREAD: Base = %u != %u = nextseqnum => Reinicia o timer\n", base, nextseqnum);
-                        initial = clock();                        
-                        time = 0;
-                        run_timer = TRUE;              
-                    }
-                    if(getacknum(pkg) == 1){
-                        socket->sending = FALSE;
-                        printf("\n");
-                    }
-                }else{
-                   if (is_corrupted(pkg)) printf("SENDER_THREAD: Está corrompido.\n");
-                   if (!ack_flag(pkg)) printf("SENDER_THREAD: Não é um ack.\n");
-                   printf("SENDER_THREAD: Ignora.\n");
-                }
-                free(pkg);
-                printf("SENDER_THREAD: Desalocou pacote recebido.\n");
-                printf("--------------------------------------------\n");
-            }
-
-            if (time >= endpoint){
-                printf("--------------------------------------------\n");
-                printf("SENDER_THREAD: Timeout!\n");                
-                initial = clock();
-                time = 0;
-                run_timer = TRUE;
-                printf("SENDER_THREAD: Reinicia o timer\n");
-                printf("SENDER_THREAD: Reenvia janela:\n");
-                for(int i = base; i < nextseqnum; i++){
-                    printf("SENDER_THREAD: Pacote %u:\n", i);
-                    print_pack(window[i%WINDOW_SIZE], "SENDER_THREAD");
-                    send_segment((char*)window[i%WINDOW_SIZE], sizeof(Package), socket->remote_IP, REAL_SENDER_PORT);          
-                    printf("SENDER_THREAD: Enviado.\n");
-                }
-                printf("--------------------------------------------\n");
-            }
-        }        
-    }
-}
-
-
-
-int send_message(int socket_id, char* snd_data, int length){
-    ConnectionSocket* socket = sockets[socket_id];
-    if (socket == NULL){
-        printf("SEND_MESSAGE: ");
-        printf(NULL_ERROR);
-        return -1;
-    }
-    while(socket->receiving == TRUE || socket->sending == TRUE);
-    socket->sending = TRUE;
-
-    printf("\n");
-    printf("SEND_MESSAGE: Começa.\n");
-    printf("SEND_MESSAGE: length = %i\n", length);
-    for (int j = 0; j < length; ++j)
-    {
-        printf("%c", snd_data[j]);       
-    }
-    printf("\n");
-
-
-    uint32_t initialseqnumber = (nextseqnum == 1)? 2: nextseqnum;
-    printf("SEND_MESSAGE: initialseqnumber = %u\n", initialseqnumber);
-    
-    int pkg_amount = length / DATA_SIZE;
-    if (length % DATA_SIZE != 0) pkg_amount++;
-
-    // Indica qual o próximo num de sequencia,
-    // após o último pacote da mensagem
-    socket->end_of_message = initialseqnumber + pkg_amount;
-    printf("SEND_MESSAGE: end_of_message = %u\n", socket->end_of_message);
-
-    printf("SEND_MESSAGE: Enviar %u pacotes\n", pkg_amount);
-    int i;
-    for (i = 0; i < (length - (length % DATA_SIZE)); i+= DATA_SIZE){
-        printf("SEND_MESSAGE: Coloca na fila de envio\n");
-        printf("SEND_MESSAGE: Data = ");
-        for (int j = i; j < DATA_SIZE; ++j)
-        {
-            if(33 <= snd_data[j] &&  snd_data[j] <= 126 && snd_data[j] != ' ')
-                printf("%c ", snd_data[j]);
-            else if(snd_data[j] == ' ')
-                printf("[SPC] ");
-            else
-                printf("0x%x ", snd_data[j]);
-        }
-        printf("\n");
-
-        pthread_mutex_lock(&socket->data_queue_lock);
-        data_queue_push(socket->data_queue, snd_data+i);
-        pthread_mutex_unlock(&socket->data_queue_lock);
-    }
-
-    // Envia o resto
-    if(length % DATA_SIZE != 0){
-        // printf("SEND_MESSAGE: Coloca na fila de envio\n");
-        char tail [DATA_SIZE];
-        int a = length / DATA_SIZE;
-        printf("SEND_MESSAGE: Coloca na fila de envio\n");
-        memcpy((void*)tail, (void*) (snd_data + (length - (length % DATA_SIZE))), length%DATA_SIZE);
-        printf("SEND_MESSAGE: Data = ");
-        for (int j = 0; j < length%DATA_SIZE; ++j)
-        {
-            if(33 <= tail[j] &&  tail[j] <= 126 && tail[j] != ' ')
-                printf("%c ", tail[j]);
-            else if(tail[j] == ' ')
-                printf("[SPC] ");
-            else
-                printf("0x%x ", tail[j]);
-        }
-        printf("\n");
-
-        pthread_mutex_lock(&socket->data_queue_lock);
-        data_queue_push(socket->data_queue, tail);
-        pthread_mutex_unlock(&socket->data_queue_lock);
-    } 
-
-    while (base < socket->end_of_message);
-
-    printf("SEND_MESSAGE: Termina\n");
-    return length;
-}
-
-// Funções do destinatário
-uint32_t expectedseqnum = 1;
-void* receiver_thread(void* args){
-    expectedseqnum = (USER_TYPE == SERVER)? 1 : 2;
-    
-    ConnectionSocket* socket = (ConnectionSocket *) args;
-    Package * ack;
-    int was_end = FALSE;
-    while(TRUE){
-        if(socket->receiving && !socket->sending){
-            // printf("RECEIVER_THREAD: É para ouvir.\n");
-            if(!pkg_queue_isempty(socket->pkg_queue)){
-                printf("--------------------------------------------\n");
-                printf("RECEIVER_THREAD: Tem dados pra receber.\n");
-                pthread_mutex_lock(&socket->queue_lock);
-                Package * pkg = pkg_queue_pop(socket->pkg_queue);
-                pthread_mutex_unlock(&socket->queue_lock);
-                printf("RECEIVER_THREAD: Tira da fila.\n");
-                
-                if(!is_corrupted(pkg)){
-                    if(pkg->seq_number == expectedseqnum){
-                        printf("RECEIVER_THREAD: Numero de sequencia é o esperado:\n");
-                        print_pack(pkg, "RECEIVER_THREAD");
-                        if(end_flag(pkg)){
-                            printf("RECEIVER_THREAD: É fim de mensagem.\n");                            
-                            socket->end_of_message = expectedseqnum;
-                            socket->receiving = FALSE;
-                        }
-                        else{
-                            char data[DATA_SIZE];
-                            memcpy((void*)data, (void*)pkg->data, DATA_SIZE);
-                            
-                            if(expectedseqnum != 1){
-                                pthread_mutex_lock(&socket->data_queue_lock);
-                                data_queue_push(socket->data_queue, data);
-                                pthread_mutex_unlock(&socket->data_queue_lock);
-                                printf("RECEIVER_THREAD: Passa para a camada superior.\n");
-                            }
-                            else{
-                                socket->receiving = FALSE;
-                            }
-                        }                 
-
-                        printf("--------------------------------------------\n"); 
-
-                        free(ack);
-                        ack = make_pkg(expectedseqnum, socket->local_port, socket->remote_port, ACK_FLAG, NULL);
-
-                        printf("--------------------------------------------\n");
-                        printf("RECEIVER_THREAD: Criou o ACK:.\n");
-                        print_pack(ack, "RECEIVER_THREAD");
-                        
-                        
-                        send_segment((char*)ack, sizeof(Package),socket->remote_IP, REAL_SENDER_PORT);
-
-                        printf("RECEIVER_THREAD: Enviou o ack.\n");
-                        printf("--------------------------------------------\n");
-                        
-                        // if(expectedseqnum == 1) socket->receiving = FALSE;
-                        expectedseqnum++;                       
-                    }
-                    else{
-                        printf("RECEIVER_THREAD: Número de sequência NÃO é o esperado.\n");
-                        printf("RECEIVER_THREAD: Expected = %u\n", expectedseqnum);
-                        printf("RECEIVER_THREAD: SeqNumber = %u\n", pkg->seq_number);
-                        printf("RECEIVER_THREAD: Envia ACK %u\n", ack->seq_number);
-                        printf("--------------------------------------------\n");
-                        send_segment((char*)ack, sizeof(Package),socket->remote_IP, REAL_SENDER_PORT);
-                    }
-                }
-                else{
-                    printf("RECEIVER_THREAD: Está corrompido.\n");
-                    printf("RECEIVER_THREAD: Envia ACK %u\n", ack->seq_number);
-                    printf("--------------------------------------------\n");
-                    send_segment((char*)ack, sizeof(Package),socket->remote_IP, REAL_SENDER_PORT);
-                }
-                free(pkg);
-                printf("RECEIVER_THREAD: Desalocou o pacote recebido.\n");
-            }  
-        }          
-    }
-}
-
-
-volatile int recv_timeout = FALSE;
-void set_recv_timeout(int sig){
-    recv_timeout = TRUE;
-}
-
-int receive_message(int socket_id, char* rcv_data, int length){
-    ConnectionSocket* socket = sockets[socket_id];
-    if (socket == NULL){
-        printf("RECEIVE_MESSAGE: ");
-        printf(NULL_ERROR);
-        return -1;
-    }
-    while(socket->sending == TRUE || socket->receiving == TRUE);
-    socket->receiving = TRUE;
-
-    printf("\n");
-    printf("RECEIVE_MESSAGE: Começa.\n");
-    
-    uint32_t initial_expected = expectedseqnum;
-    if(initial_expected == 1) initial_expected = 2;
-
-    int pkg_amount = length / DATA_SIZE;
-    if (length % DATA_SIZE != 0) pkg_amount++;
-
-    socket->end_of_message = -1;
-
-    printf("RECEIVE_MESSAGE: initial_expected = %u\n", initial_expected);
-    printf("RECEIVE_MESSAGE: pkg_amount = %i\n", pkg_amount);
-
-    int received_data = 0;
-    signal(SIGALRM, set_recv_timeout);
-    while(received_data < length){
-        char data[DATA_SIZE]; 
-
-        if(recv_timeout) break;      
-        while(data_queue_isempty(socket->data_queue) || socket->end_of_message != -1);
-        
-        if(socket->end_of_message != -1){
-            printf("RECEIVE_MESSAGE: Fim da mensagem.\n");
-            socket->end_of_message = -1;         
-            break;
-        }
-        else{
-            printf("RECEIVE_MESSAGE: Preenche dados.\n");
-            pthread_mutex_lock(&socket->data_queue_lock);
-            data_queue_pop(socket->data_queue, data); 
-            pthread_mutex_unlock(&socket->data_queue_lock);
-            memcpy((void*)rcv_data + received_data, (void*)data, DATA_SIZE);
-            received_data += DATA_SIZE;            
-            alarm(4);
-        }       
-    }
-
-    // while(received_data < (length - (length % DATA_SIZE))){
-    //     char data[DATA_SIZE];
-        
-    //     while(data_queue_isempty(socket->data_queue));
-        
-    //     pthread_mutex_lock(&socket->data_queue_lock);
-    //     data_queue_pop(socket->data_queue, data); 
-    //     pthread_mutex_unlock(&socket->data_queue_lock);
-        
-    //     memcpy((void*)rcv_data + received_data, (void*)data, DATA_SIZE);
-    //     received_data += DATA_SIZE;
-    // }
-    
-    // if(length % DATA_SIZE != 0){
-    //     // printf("RECEIVE_MESSAGE: Pega o resto\n");
-    //     char tail[DATA_SIZE];
-    //     while(data_queue_isempty(socket->data_queue));    
-    
-    //     pthread_mutex_lock(&socket->data_queue_lock);
-    //     data_queue_pop(socket->data_queue, tail); 
-    //     pthread_mutex_unlock(&socket->data_queue_lock);
-        
-    //     int i = length/DATA_SIZE;
-    //     memcpy((void*)rcv_data + i, (void*)tail, length % DATA_SIZE);
-    // }
-
-    // printf("RECEIVE_MESSAGE: Antes:  expectedseqnum = %u\n", expectedseqnum);
-    // while(expectedseqnum < initial_expected+pkg_amount);
-    // printf("RECEIVE_MESSAGE: Depois: expectedseqnum = %u\n", expectedseqnum);
-
-    
-    printf("RECEIVE_MESSAGE: Termina.\n");
-    return received_data;
-}

@@ -1,4 +1,4 @@
-#include "../include/pkg_queue.h"
+#include "../include/seg_queue.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -6,27 +6,27 @@ typedef struct node node;
 
 struct node
 {
-	Package* pkg;
+	Segment* seg;
 	node* next;
 	node* prev;
 };
 
-struct pkg_queue{
+struct seg_queue{
 	node* 	back;
 	node* 	front;
 };
 
 
-PackageQueue* new_pkg_queue(){
-	PackageQueue* new = (PackageQueue*) malloc(sizeof(PackageQueue));
+SegmentQueue* new_seg_queue(){
+	SegmentQueue* new = (SegmentQueue*) malloc(sizeof(SegmentQueue));
 	new->back = NULL;
 	new->front = NULL;
     return new;
 }
 
-void pkg_queue_push(PackageQueue* q, Package* pkg){
+void seg_queue_push(SegmentQueue* q, Segment* seg){
 	node* inserted = (node*) malloc(sizeof(node));
-	inserted->pkg = pkg;
+	inserted->seg = seg;
 
 	if(q->back != NULL){
 		q->back->prev = inserted;
@@ -39,7 +39,7 @@ void pkg_queue_push(PackageQueue* q, Package* pkg){
 	q->back = inserted;
 }
 
-Package* pkg_queue_pop(PackageQueue* q){
+Segment* seg_queue_pop(SegmentQueue* q){
 	// printf("PKG_QUEUE_POP: Entrou aqui.\n");
 	node* removed = q->front;
 
@@ -50,27 +50,27 @@ Package* pkg_queue_pop(PackageQueue* q){
 	}
 
 	q->front = removed->prev;
-	Package* pkg = removed->pkg;
+	Segment* seg = removed->seg;
 	free(removed);
 
 	// printf("PKG_QUEUE_POP: Fez as operações.\n");
 
-	return pkg;
+	return seg;
 }
 
-Package* pkg_queue_front(PackageQueue* q){
-	return q->front->pkg;
+Segment* seg_queue_front(SegmentQueue* q){
+	return q->front->seg;
 }
 
 
-int pkg_queue_isempty(PackageQueue* q){
+int seg_queue_isempty(SegmentQueue* q){
 	return (q->front == NULL);
 }
 
-void pkg_clear_queue(PackageQueue * queue){
+void seg_clear_queue(SegmentQueue * queue){
     if (queue){
-    	while(!pkg_queue_isempty(queue)){
-    		pkg_queue_pop(queue);
+    	while(!seg_queue_isempty(queue)){
+    		seg_queue_pop(queue);
     	}
         free(queue);
     }
