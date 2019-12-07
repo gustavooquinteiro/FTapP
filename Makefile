@@ -2,7 +2,7 @@ APP_SERVER_NAME = Server
 APP_CLIENT_NAME = Client
 
 GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
-
+FLAGS = -lpthread
 SERVER_C = ./src/server.c
 CLIENT_C = ./src/application.c
 
@@ -26,7 +26,7 @@ else
 	endif
 endif
 
-all: clean build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
+all: build $(APP_CLIENT_NAME) $(APP_SERVER_NAME)
 
 build:
 	@ mkdir build
@@ -50,7 +50,7 @@ build/transport.o: ./src/transport.c ./include/transport.h
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 $(APP_SERVER_NAME): ./build/transport.o
-	gcc $(SERVER_C) $< -o $@
+	gcc $(SERVER_C) $< $(FLAGS) -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
 clean:

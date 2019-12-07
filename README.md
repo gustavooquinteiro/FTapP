@@ -22,7 +22,6 @@ Screenshot da aplicação do cliente em GTK. O tema da aplicação é o tema pad
 
 ### :desktop_computer: Camada de Aplicação
 > :warning: :timer_clock: Na segunda etapa do trabalho, deverá ser entregue a aplicação rodando e um relatório parcial da camada de aplicação.
-
 Haverá duas aplicações: uma para o cliente e outra para o servidor. A aplicação de servidor não terá interface gráfica. No servidor terá um tipo de segurança deixando a critério do usuário a aceitação do arquivo.
 
 Nessa camada opera o protocolo a ser implementado: o FTP, onde o arquivo será empacotado e repassado à camada de transporte, que fará seu envio. Além do empacotamento, o protocolo fará o controle de dados na porta 21.
@@ -61,7 +60,7 @@ A camada física será simulada através de sockets, utilizando a biblioteca em 
 No diretório onde foi baixado, rode o comando: 
 
 ```sh
-tar xvfJ gtk+-3.2.0.tar.xz
+tar xvfJ gtk+-3.20.0.tar.xz
 ```
 Entre o diretório criado, e instale o pacote em /opt/gtk usando o comando: 
 
@@ -95,5 +94,3 @@ Para rodar o cliente, insira o comando a seguir, em outro terminal:
 ```sh
 ./Client
 ```
-
-
