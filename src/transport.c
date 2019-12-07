@@ -1,14 +1,14 @@
-#include "../include/transport.h"
 #include "../include/requisition_queue.h"
 #include "../include/data_queue.h"
 #include "../include/seg_queue.h"
+#include "../include/transport.h"
 #include "../include/ip_queue.h"
-#include "../include/timer.h"
 #include "../include/network.h"
+#include "../include/timer.h"
+#include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 // Para debug
 #include <stdio.h>
 
@@ -307,7 +307,7 @@ int GBN_send(int socket_id, char* snd_data, int length){
 
 	// Tem um resto
 	if(tail_size != 0){
-		printf("GBN_send: Tem rabinho.\n");
+		printf("GBN_send: tamanho residual do arquivo menor que DATA_SIZE.\n");
 		char tail[DATA_SIZE];
         memcpy(tail, (snd_data + sent_data), tail_size);
 
@@ -478,10 +478,10 @@ void * kernel_thread(void* data){
 			if(SOCKETS[i] != NULL){
 				GBN_Socket* s = SOCKETS[i];
 				if(s->state == CLOSED){
-					LOCK(DELETE_MUTEX);
-					printf("Closed.\n");
-					delete_socket(s);
-					UNLOCK(DELETE_MUTEX);
+// 					printf("Closed.\n");
+//                     LOCK(DELETE_MUTEX);
+// 					delete_socket(s);
+// 					UNLOCK(DELETE_MUTEX);
 					continue;
 				}
 				switch(s->state){
@@ -567,7 +567,6 @@ void * kernel_thread(void* data){
 								else if(s->state == FIN_WAIT_2){
 									printf("FIN_WAIT_2\n");
 									if(has_segment && fin_flag(seg)){
-										printf("Vai pra TIME_WAIT\n");
 										flags_sent = ACK_FLAG;
 		                				data_sent = NULL;
 		                				send = TRUE;

@@ -1,7 +1,7 @@
 #include "../include/requisition_queue.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 
 #define SIZE 16
 

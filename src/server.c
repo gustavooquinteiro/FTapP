@@ -1,23 +1,25 @@
 #include "../include/transport.h"
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
 #include <sys/stat.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <time.h>
 
-#define PORT 8074
-#define CONTROL_PORT 8090
-#define LISTENER_CREATION_ERROR "Listener creation error"
-#define CONN_CREATION_ERROR "Connection socket creation error"
-#define REQUEST_ERROR "Client request error"
-#define RESPONSE_ERROR "Server response error"
-#define RECEIVE_INFO_ERROR "Receive info error"
-#define RECEIVE_FILE_ERROR "Receive file error"
-#define SERVER_CONFIRM_ERROR "Server confirm error"
-#define CTRLBUFF_SIZE 12
-#define TRUE 1
+#define PORT            8074
+#define CONTROL_PORT    8090
+#define CTRLBUFF_SIZE   12
+#define TRUE            1
+
+#define LISTENER_CREATION_ERROR     "Listener creation error"
+#define CONN_CREATION_ERROR         "Connection socket creation error"
+#define REQUEST_ERROR               "Client request error"
+#define RESPONSE_ERROR              "Server response error"
+#define RECEIVE_INFO_ERROR          "Receive info error"
+#define RECEIVE_FILE_ERROR          "Receive file error"
+#define SERVER_CONFIRM_ERROR        "Server confirm error"
+
 
 pthread_mutex_t lock;
 

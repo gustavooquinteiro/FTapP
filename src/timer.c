@@ -1,8 +1,8 @@
 #include "../include/timer.h"
-#include <time.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
 
 struct timer
 {
@@ -17,7 +17,7 @@ struct timer
 
 
 void* timer_thread(void* data){
-	Timer* t = (Timer*) data;
+    Timer* t = (Timer*) data;
 
 	int run_timer = 0;
     int time;
@@ -61,7 +61,7 @@ Timer* new_timer(unsigned time_limit){
 	new->stop = 0;
 	new->start = 0;
 	new->close = 0;
-
+    
 	int result = pthread_create(&new->thread, NULL, timer_thread, (void*) new);
 	if(result != 0) return NULL;
 

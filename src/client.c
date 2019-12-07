@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h> 
+#include <unistd.h>
 #include <stdio.h>
 #include <time.h>
-#include <unistd.h>
 
 #define PORT 8074
 #define CONTROL_PORT 8090
@@ -178,7 +178,7 @@ int send_file(char* file_name, const char* ip_address)
         result = create_data_connection(data);
     }
 
-    GBN_close(connection_socket);
+    //GBN_close(connection_socket);
 
     sleep(200);
     return result;

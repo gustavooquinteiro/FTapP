@@ -1,8 +1,8 @@
 #ifndef _TRANSPORT_H
 #define _TRANSPORT_H
 
-#define CLIENT 1
-#define SERVER 0
+#define CLIENT  1
+#define SERVER  0
 
 int GBN_transport_init(int user_type);
 
