@@ -1,11 +1,9 @@
 #include "../include/user_interface.h"
 #include "../include/client.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <gtk/gtk.h>
-
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 typedef struct applicationWindow ApplicationWindow;
 

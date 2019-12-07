@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h> 
+#include <unistd.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -13,7 +14,7 @@
 
 typedef struct thread_data
 {
-    tcp_socket * socket;
+    int socket;
     FILE* file;
 } Data;
 
@@ -43,7 +44,7 @@ int ip_is_valid(const char* ip);
 int create_data_connection(Data args)
 {
     int returned_value;
-    tcp_socket * socket = args.socket;
+    int socket = args.socket;
     FILE* myfile = args.file;
         
     // Envia arquivo em pacotes de pkg_size bytes
@@ -57,9 +58,9 @@ int create_data_connection(Data args)
         int size = min(rest, pkg_size);
         fread(buffer, sizeof(char), size, myfile);
 
-        int bytes_sent = send_message(socket, buffer, size);
+        int bytes_sent = GBN_send(socket, buffer, size);
         if(bytes_sent == -1){ 
-            delete_tcp_socket(socket);
+            GBN_close(socket);
             fclose(myfile);
             print_time();
             perror("Error(Send file)");
@@ -75,28 +76,27 @@ int create_data_connection(Data args)
     // Recebe mensagem de confirmação
     char server_msg[50];
     printf("Waiting confirmation...\n");
-    returned_value = recieve_message(socket, server_msg, PKG_SIZE, 0);
+    returned_value = GBN_receive(socket, server_msg, 30);
     if(returned_value == -1 || returned_value == 0){
-        delete_tcp_socket(socket);
+        GBN_close(socket);
         perror("Warning(Server confirm)");
         return SERVER_CONFIRM_ERROR;
     }
-    server_msg[returned_value] = '\0';    
-
-    delete_tcp_socket(socket);
+    server_msg[returned_value] = '\0';   
     printf("Server confirmation received: %s\n", server_msg);
+    GBN_close(socket);
     return SUCCESS;
 }
     
 int create_control_connection(Data args)
 {
     int returned_value;
-    tcp_socket* socket = args.socket;
+    int socket = args.socket;
     FILE* myfile = args.file;
     
-   // Cria socket de conexão
+    // Cria socket de conexão
     printf("Creating socket...\n");
-    if(socket == NULL){
+    if(socket == -1){
         fclose(myfile);
         perror("Error(Socket creation)");
         return CONN_SOCKET_CREATION_ERROR;
@@ -106,8 +106,8 @@ int create_control_connection(Data args)
     // Envia requisição para conexão
     printf("Sending request...\n");
     char request_msg[1] = {'A'};
-    if(send_message(socket, request_msg, 1) == -1) {
-        delete_tcp_socket(socket);
+    if(GBN_send(socket, request_msg, 1) == -1) {
+        GBN_close(socket);
         fclose(myfile);
         perror("Error(Request)");
         return REQUEST_ERROR;
@@ -117,9 +117,9 @@ int create_control_connection(Data args)
     // Recebe resposta do servidor (maximo de bytes no pacote)
     uint8_t max_pkg_bytes[4];
     printf("Waiting response...\n");
-    returned_value = recieve_message(socket, max_pkg_bytes, 4, 0);
+    returned_value = GBN_receive(socket, max_pkg_bytes, 4);
     if( returned_value == -1 || returned_value == 0){
-        delete_tcp_socket(socket);
+        GBN_close(socket);
         fclose(myfile);
         perror("Error(Response)");
         return RESPONSE_ERROR;
@@ -136,8 +136,8 @@ int create_control_connection(Data args)
     toBytes64(sizes_bytes, filesize);
     toBytes32(sizes_bytes + 8, pkg_size);
     printf("Sending file info...\n");
-    if(send_message(socket, sizes_bytes, 8 + 4) == -1){
-        delete_tcp_socket(socket);
+    if(GBN_send(socket, sizes_bytes, 8 + 4) == -1){
+        GBN_close(socket);
         fclose(myfile);
         perror("Error(Send info)");
         return SEND_INFO_ERROR;
@@ -165,16 +165,22 @@ int send_file(char* file_name, const char* ip_address)
     printf("Success: Open file.\n");
     
 
-    tcp_socket* connection_socket = new_requester_socket(PORT, ip_address);
+    int connection_socket = GBN_connect(PORT, ip_address);
+
+    if(connection_socket == -1) return CONN_SOCKET_CREATION_ERROR;
 
     Data data;
     data.socket = connection_socket;
     data.file = myfile;
     
     int result = create_control_connection(data);
-    if(result == SUCCESS){
-        return create_data_connection(data);
+    if(result == SUCCESS){        
+        result = create_data_connection(data);
     }
+
+    //GBN_close(connection_socket);
+
+    sleep(200);
     return result;
 }
 

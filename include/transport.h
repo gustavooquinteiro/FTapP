@@ -1,37 +1,25 @@
 #ifndef _TRANSPORT_H
 #define _TRANSPORT_H
 
-#define SEND_FLAGS 0
-#define RECV_FLAGS MSG_WAITALL
-#define PROTOCOL_VALUE 0
-#define LISTEN_QUEUE 1
-#define SOCKET_FAILED_EXCEPTION "Socket creation failed"
-#define CONNECTION_FAILED_EXCEPTION "Socket connection failed"
+#define CLIENT  1
+#define SERVER  0
 
-typedef struct tcp_socket tcp_socket;
+int GBN_transport_init(int user_type);
 
-// 
-tcp_socket* new_requester_socket(int port, const char* address);
+int GBN_listen(int port);
 
-//
-tcp_socket* new_listener_socket(int port);
+int GBN_accept(int listener);
 
-// 
-tcp_socket* new_connection_socket(tcp_socket* listener);
+int GBN_connect(int server_port, const char* server_ip);
 
+int GBN_send(int socket, char* snd_data, int length);
 
-// Envia uma mensagem através do socket dado
-// retorna tamanho da mensagem enviada, ou EXIT_FAILURE cao haja erro
-int send_message(tcp_socket*, void* snd_data, unsigned int length);
+int GBN_receive(int socket, char* rcv_data, int length);
 
-// Recebe uma mensagem através do socket dado
-// retorna tamanho da mensagem recebida ou EXIT_FAILURE cao haja erro
-int recieve_message(tcp_socket*, void* rcv_data, unsigned int length, int flag);
+int GBN_peer_ip(int socket, char* ip);
 
-// Exclui o socket passado
-int delete_tcp_socket(tcp_socket*);
+void GBN_close(int socket);
 
-// Retorna o ip do par conectado no socket dado 
-int get_peer_ip(tcp_socket*, char* ip);
+void GBN_transport_end();
 
 #endif
