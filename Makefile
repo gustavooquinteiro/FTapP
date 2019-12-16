@@ -5,11 +5,16 @@ GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
 FLAGS = -lpthread
 SERVER_C = ./src/server.c
 CLIENT_C = ./src/application.c
-USER_INTERFACE = src/user_interface.c
 
-CLIENT_IGNORE = $(SERVER_C) ./src/application.c
+USER_INTERFACE_SRC = ./src/user_interface.c
+USER_INTERFACE_LIB = ./include/user_interface.h
+USER_INTERFACE_OBJ = ./build/user_interface.o
+
+CLIENT_IGNORE = $(SERVER_C) $(CLIENT_C)
 CLIENT_DEPS = $(subst .c,.o, $(subst ./src/,./build/, $(filter-out $(CLIENT_IGNORE), $(wildcard ./src/*.c))))
-SERVER_DEPS = $(filter-out $(subst .c,.o,$(subst ./src/,.build/, $(CLIENT_C))), $(CLIENT_DEPS))
+
+SERVER_IGNORE = $(SERVER_C) $(CLIENT_C) $(USER_INTERFACE_SRC) ./src/client.c
+SERVER_DEPS = $(subst .c,.o, $(subst ./src/,./build/, $(filter-out $(SERVER_IGNORE), $(wildcard ./src/*.c))))
 
 GREEN =
 NC =
@@ -39,19 +44,17 @@ $(APP_CLIENT_NAME): $(CLIENT_DEPS)
 	@ gcc $(CLIENT_C) $^ $(GTK_FLAGS) -o $@ -g
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
-$(APP_SERVER_NAME): ./build/transport.o ./build/requisition_queue.o ./build/network.o  \
-./build/data_queue.o ./build/timer.o ./build/ip_queue.o ./build/seg_queue.o
+$(APP_SERVER_NAME): $(SERVER_DEPS)
 	@ gcc $(SERVER_C) $^ $(FLAGS) -o $@ -g
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Executável construido: $@"
 
-build/user_interface.o: ./src/user_interface.c ./include/user_interface.h
+$(USER_INTERFACE_OBJ): $(USER_INTERFACE_SRC) $(USER_INTERFACE_LIB)
 	@ gcc -c $(GTK_FLAGS) $< -o $@
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
 
 build/%.o: ./src/%.c ./include/%.h 
 	@ gcc -c $< -o $@ 
 	@ $(ECHO) " [$(GREEN) OK $(NC)] Compilado $< em $@"
-	
 
 clean:
 	@ $(ECHO) " Limpando workspace..."
