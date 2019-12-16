@@ -17,6 +17,7 @@
 
 #define MAX_SOCKETS 128
 #define MAX_PORT    65535
+#define TIME_TO_LIVE 240000
 
 #define WINDOW_SIZE 20
 #define SEG_SIZE    26
@@ -465,9 +466,7 @@ void * kernel_thread(void* data){
 				has_segment = FALSE;
 			}
 			else{
-				has_segment = TRUE;		
-				// printf("KERNEL: Pacote recebido:\n");
-				// print_pack(seg, "KERNEL");
+				has_segment = TRUE;
 			}
 		}
 
@@ -479,9 +478,6 @@ void * kernel_thread(void* data){
 				GBN_Socket* s = SOCKETS[i];
 				if(s->state == CLOSED){
 // 					printf("Closed.\n");
-//                     LOCK(DELETE_MUTEX);
-// 					delete_socket(s);
-// 					UNLOCK(DELETE_MUTEX);
 					continue;
 				}
 				switch(s->state){
@@ -642,7 +638,6 @@ void * kernel_thread(void* data){
                 			s->expectedseqnum++;
                 		}
 
-                		
                 		// if(has_segment == TRUE) printf("Receiver: Tem dados pra receber.\n");            		
                 		// if(syn_flag(seg))  
                 			// printf("Receiver: É SYN.\n");
@@ -780,7 +775,7 @@ GBN_Socket* make_listener(int id, uint16_t local_port){
     	socket->req_queue = new_req_queue();	
     	if(socket->req_queue == NULL) not_error = FALSE;
 
-    	if (pthread_mutex_init(&socket->req_mutex, NULL) != 0) not_error = FALSE;
+    	if (pthread_mutex_init(&socket->req_mutex, NULL) != FALSE) not_error = FALSE;
 
     } else not_error = FALSE;
 
@@ -804,7 +799,7 @@ GBN_Socket* make_connection(int id, uint16_t local_port, uint16_t remote_port, c
     	strcpy(socket->remote_IP, remote_IP);
     	socket->state = UNSET;
 
-    	socket->TTL = new_timer(240000);
+    	socket->TTL = new_timer(TIME_TO_LIVE);
     	if(socket->TTL == NULL) not_error = FALSE;
     	// if(not_error) printf("Criou TTL\n");
     	
@@ -820,28 +815,28 @@ GBN_Socket* make_connection(int id, uint16_t local_port, uint16_t remote_port, c
     	if(socket->rcv_buffer == NULL) not_error = FALSE;
     	// if(not_error) printf("Criou rcv_buffer\n");
 
-    	if (pthread_mutex_init(&socket->snd_mutex, NULL) != 0) not_error = FALSE;
+    	if (pthread_mutex_init(&socket->snd_mutex, NULL) != FALSE) not_error = FALSE;
     	// if(not_error) printf("Criou snd_mutex\n");
 
-    	if (pthread_mutex_init(&socket->rcv_mutex, NULL) != 0) not_error = FALSE;
+        if (pthread_mutex_init(&socket->rcv_mutex, NULL) != FALSE) not_error = FALSE;
     	// if(not_error) printf("Criou rcv_mutex\n");
 
-    	socket->nextseqnum = 1;
-    	socket->base = 1;
-    	memset(socket->window, 0, WINDOW_SIZE);
+        socket->nextseqnum = 1;
+        socket->base = 1;
+        memset(socket->window, 0, WINDOW_SIZE);
 
-    	socket->gbn_timer = new_timer(1000);
-    	if(socket->gbn_timer == NULL) not_error = FALSE;
+        socket->gbn_timer = new_timer(1000);
+        if(socket->gbn_timer == NULL) not_error = FALSE;
     	// if(not_error) printf("Criou gbn_timer\n");
 
-    	socket->expectedseqnum = 1;
-    	socket->ack = make_seg(0,socket->local_port, socket->remote_port, ACK_FLAG, NULL);
+        socket->expectedseqnum = 1;
+        socket->ack = make_seg(0,socket->local_port, socket->remote_port, ACK_FLAG, NULL);
 
     } else not_error = FALSE;
 
     if(not_error == FALSE){
-    	delete_socket(socket);
-    	socket = NULL;
+        delete_socket(socket);
+        socket = NULL;
     }
 
     return socket;
@@ -868,21 +863,18 @@ void print_pack(Segment* seg, char* funcName){
 }
 
 int fin_flag(Segment* seg){ 
-	if(seg != NULL)
-		return (seg->flags & FIN_FLAG);
-	else return FALSE;
+    if(seg != NULL) return (seg->flags & FIN_FLAG);
+    else return FALSE;
 }
 
 int syn_flag(Segment* seg){ 
-	if(seg != NULL)
-		return (seg->flags & SYN_FLAG);
-	else return FALSE;
+    if(seg != NULL) return (seg->flags & SYN_FLAG);
+    else return FALSE;
 }
 
 int ack_flag(Segment* seg){ 
-	if(seg != NULL)
-		return (seg->flags & ACK_FLAG);
-	else return FALSE;
+    if(seg != NULL) return (seg->flags & ACK_FLAG);
+    else return FALSE;
 }
 
 int is_corrupted(Segment* seg){

@@ -25,7 +25,7 @@ int send_segment(char* buffer, int buffsize, const char* IP, int real_port){
 	// Criando o socket
 	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);  
     if (sockfd == -1) {
-        perror("socket creation failed"); 
+        perror(CREATION_FAIL); 
         return FALSE; 
     }
 
