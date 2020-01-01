@@ -180,7 +180,6 @@ int send_file(char* file_name, const char* ip_address)
 
     //GBN_close(connection_socket);
 
-    sleep(200);
     return result;
 }
 
